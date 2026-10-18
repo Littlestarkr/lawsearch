@@ -7,3 +7,8 @@
 - `worker.js` : 브라우저에서 법제처 서버를 직접 호출할 수 없을 때 쓰는 Cloudflare Workers 중계 코드 (선택)
 
 참고용 도구이며 법률 자문이 아닙니다. 중요한 판단 전에는 국가법령정보센터 원문을 확인하세요.
+
+## trade/ — HappyOh 무역통계 길잡이
+- `trade/index.html` : HS코드 찾기, 한국 수출 상대국 순위(관세청+UN Comtrade 비교), 세계 수입시장·한국 점유율, 연·월 추이. 주소: `/lawsearch/trade/`
+- `trade/proxy.gs` : Google Apps Script 중계 서버(관세청 인증키 숨김·CORS 우회). 배포 방법은 파일 상단 주석 참고. 배포 후 `index.html`의 `DEFAULT_PROXY`에 웹 앱 URL을 넣는다.
+- 한국무역협회(K-stat)는 공개 API가 없어 링크로만 연결한다.

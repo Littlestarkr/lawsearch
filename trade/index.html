@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HappyOh 무역통계 길잡이</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
+  --brand:#14507a; --brand-ink:#ffffff; --soft:#e8f1f8; --warn:#fff6e5; --warn-line:#f0c36d;
+  --ok:#e7f6ee; --ok-ink:#176640; --bar:#3d86b8; --bar2:#e0953a; --err:#fdecec; --err-line:#e49a9a;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10151b; --card:#18202a; --ink:#e8edf2; --sub:#9aa7b6; --line:#2a3542; --brand:#5aa9dd; --brand-ink:#0b1722; --soft:#17283a; --warn:#2a2412; --warn-line:#6b5a22; --ok:#12301f; --ok-ink:#7fd6a4; --bar:#5aa9dd; --bar2:#e0a35a; --err:#341a1a; --err-line:#7a3a3a;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 60px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{margin:0;font-size:26px;letter-spacing:-.02em}
+.sub{margin:6px 0 0;color:var(--sub);font-size:15px}
+.gear{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+.notice{background:var(--warn);border:1px solid var(--warn-line);border-radius:10px;padding:10px 14px;font-size:13px;margin:16px 0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px;border-bottom:1px solid var(--line)}
+.tab{border:0;background:none;color:var(--sub);font-size:15px;padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;font-weight:600}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.card h3{margin:0 0 4px;font-size:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:3px}
+input,select{font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--brand)}
+.grow{flex:1;min-width:180px}
+.btn{font:inherit;font-size:14px;padding:10px 18px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font-weight:700;cursor:pointer}
+.btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--line);font-weight:600;padding:7px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.hint{font-size:12.5px;color:var(--sub);margin:8px 0 0}
+.state{padding:22px 8px;text-align:center;color:var(--sub)}
+.err{background:var(--err);border:1px solid var(--err-line);border-radius:10px;padding:10px 14px;font-size:13.5px;margin:10px 0;white-space:pre-wrap}
+.okbox{background:var(--ok);color:var(--ok-ink);border-radius:10px;padding:10px 14px;font-size:13.5px;margin:10px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.hb{display:grid;grid-template-columns:22px 108px 1fr 86px;gap:6px;align-items:center;font-size:13px;margin:4px 0}
+.hb .n{color:var(--sub);text-align:right}
+.hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .t{background:var(--soft);border-radius:4px;height:16px;overflow:hidden}
+.hb .t i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.hb.b2 .t i{background:var(--bar2)}
+.hb .v{text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--sub);font-weight:600;font-size:12.5px}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;background:var(--soft);color:var(--brand);font-size:12px;font-weight:600;margin-right:4px}
+.tag.ok{background:var(--ok);color:var(--ok-ink)}
+.vb{display:flex;align-items:flex-end;gap:6px;height:190px;padding:8px 0 0}
+.vb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.vb i{display:block;width:100%;max-width:46px;background:var(--bar);border-radius:4px 4px 0 0;min-height:2px}
+.vb small{font-size:11px;color:var(--sub);margin-top:4px;white-space:nowrap}
+.vb b{font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap}
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.links a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.links a:hover{border-color:var(--brand)}
+.links b{display:block;color:var(--brand);margin-bottom:2px}
+.links span{font-size:13px;color:var(--sub)}
+details.guide{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:0 0 14px}
+details.guide summary{cursor:pointer;font-weight:700;color:var(--brand);font-size:14px}
+details.guide li{font-size:13.5px;margin:5px 0}
+code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:12.5px}
+footer{margin-top:28px;color:var(--sub);font-size:12.5px}
+.settings{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px}
+.settings.open{display:block}
+.settings input{width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>HappyOh 무역통계 길잡이</h1>
+      <p class="sub">HS코드를 찾고, 품목별 수출 상대국 순위와 세계 수입시장을 한 화면에서 비교합니다.</p>
+    </div>
+    <button class="gear" id="gear" type="button">⚙ 설정</button>
+  </div>
+  <div class="settings" id="settings">
+    <label for="proxy" style="font-size:13px;color:var(--sub)">중계 서버 주소 (Apps Script 웹 앱 URL, …/exec)</label>
+    <input id="proxy" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="row" style="margin-top:10px"><button class="btn" id="saveCfg" type="button">저장</button><button class="btn ghost" id="pingBtn" type="button">연결 시험</button></div>
+    <div id="cfgMsg" class="hint"></div>
+  </div>
+
+  <div class="notice">참고용 통계 도구입니다. 관세청(통관 기준, HS 10단위, 최신월)과 UN Comtrade(국제 기준, HS 6단위, 연간·지연 공표)는 집계 기준과 시점이 달라 금액이 정확히 일치하지 않습니다. 중요한 의사결정 전에는 원자료(UNI-PASS, K-stat)로 확인하세요.</div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="hs">① HS코드 찾기</button>
+    <button class="tab" data-p="rank">② 수출 상대국 순위</button>
+    <button class="tab" data-p="world">③ 세계 수입시장·점유율</button>
+    <button class="tab" data-p="trend">④ 추이</button>
+    <button class="tab" data-p="more">⑤ 관세율·무역협회</button>
+  </div>
+
+  <!-- ① HS -->
+  <section class="panel on" id="p-hs">
+    <div class="card">
+      <div class="row">
+        <div class="grow"><label for="hsq">품목명 또는 HS코드</label><input id="hsq" style="width:100%" placeholder="예) 화장품, 라면, 반도체, 3304, 330499"></div>
+        <button class="btn" id="hsGo" type="button">찾기</button>
+      </div>
+      <p class="hint">한글 품목명은 자주 쓰는 수출 품목 사전에서, 영어 단어와 숫자 코드는 UN HS 분류표 전체에서 찾습니다. 사전의 코드는 참고용이니 최종 확정은 관세청 HS 검색으로 하세요.</p>
+    </div>
+    <div id="hsOut"></div>
+  </section>
+
+  <!-- ② 순위 -->
+  <section class="panel" id="p-rank">
+    <div class="card">
+      <div class="row">
+        <div><label for="rkHs">HS코드</label><input id="rkHs" size="12" placeholder="예) 330499"></div>
+        <div><label for="rkYear">UN Comtrade 연도</label><select id="rkYear"></select></div>
+        <div><label for="rkFrom">관세청 기간(시작)</label><input id="rkFrom" type="month"></div>
+        <div><label for="rkTo">관세청 기간(끝)</label><input id="rkTo" type="month"></div>
+        <button class="btn" id="rkGo" type="button">순위 보기</button>
+      </div>
+      <p class="hint">한국의 수출 상대국 순위입니다. 관세청 기간은 최대 12개월이며, 관세청은 HS 10자리까지 입력할수록 정확합니다.</p>
+    </div>
+    <div id="rkOut"></div>
+  </section>
+
+  <!-- ③ 세계 -->
+  <section class="panel" id="p-world">
+    <div class="card">
+      <div class="row">
+        <div><label for="wdHs">HS코드 (6자리)</label><input id="wdHs" size="12" placeholder="예) 330499"></div>
+        <div><label for="wdYear">연도</label><select id="wdYear"></select></div>
+        <button class="btn" id="wdGo" type="button">시장 분석</button>
+      </div>
+      <p class="hint">세계 각국의 수입액 순위와, 그 나라 시장에서 한국이 차지하는 비중(점유율)을 보여 줍니다. 수입 규모는 큰데 한국 점유율이 낮은 나라가 신규 개척 후보입니다.</p>
+    </div>
+    <div id="wdOut"></div>
+  </section>
+
+  <!-- ④ 추이 -->
+  <section class="panel" id="p-trend">
+    <div class="card">
+      <div class="row">
+        <div><label for="tdHs">HS코드</label><input id="tdHs" size="12" placeholder="예) 330499"></div>
+        <div><label for="tdCty">상대국</label><select id="tdCty"></select></div>
+        <button class="btn" id="tdYear" type="button">연도별(UN Comtrade)</button>
+        <button class="btn" id="tdMonth" type="button">월별(관세청)</button>
+      </div>
+      <p class="hint">한국 → 선택한 나라 수출액의 변화입니다. 연도별은 최근 6개년, 월별은 위 ②탭에서 정한 12개월 기간을 씁니다.</p>
+    </div>
+    <div id="tdOut"></div>
+  </section>
+
+  <!-- ⑤ 링크 -->
+  <section class="panel" id="p-more">
+    <div class="card"><h3>한국무역협회(K-stat)</h3>
+      <p class="hint" style="margin-top:2px">K-stat은 공개 API가 없어 화면에서 직접 조회·엑셀 다운로드를 해야 합니다. 위 ②에서 찾은 HS코드를 K-stat에 입력해 비교해 보세요.</p></div>
+    <div class="links">
+      <a href="https://stat.kita.net/stat/kts/pum/ItemImpExpList.screen" target="_blank" rel="noopener"><b>K-stat 품목별 수출입 ↗</b><span>품목(MTI·HS)별 연·월 수출입 실적</span></a>
+      <a href="https://stat.kita.net/stat/kts/ctr/CtrTotalImpExpList.screen" target="_blank" rel="noopener"><b>K-stat 국가별 수출입 ↗</b><span>국가별 수출입 총괄 실적</span></a>
+      <a href="https://stat.kita.net/stat/kts/prod/ProdWholeList.screen" target="_blank" rel="noopener"><b>K-stat 품목별 종합 ↗</b><span>품목 종합 조회</span></a>
+      <a href="https://unipass.customs.go.kr/clip/index.do" target="_blank" rel="noopener"><b>관세법령정보포털(UNI-PASS) ↗</b><span>HS 검색·관세율·FTA 협정세율·품목분류 사례</span></a>
+      <a href="https://unipass.customs.go.kr/ets/index.do" target="_blank" rel="noopener"><b>무역통계(관세청) ↗</b><span>관세청 수출입무역통계 원자료</span></a>
+      <a href="https://comtradeplus.un.org/" target="_blank" rel="noopener"><b>UN Comtrade ↗</b><span>세계 각국의 상품 무역 통계(HS 6단위)</span></a>
+      <a href="../" ><b>HappyOh 법령 길잡이 →</b><span>대외무역법·관세법 등 법령 검색</span></a>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>관세율은?</h3>
+      <p class="hint" style="margin-top:2px">관세율·협정세율 조회 API(UNI-PASS)는 별도 인증키가 필요해 아직 이 화면에 넣지 않았습니다. 인증키를 받으면 ①탭 결과에 관세율을 함께 보여 주도록 이어서 만들 수 있습니다. 지금은 위 관세법령정보포털에서 확인하세요.</p></div>
+  </section>
+
+  <details class="guide" style="margin-top:20px">
+    <summary>데이터 출처와 한계</summary>
+    <ul>
+      <li><b>관세청</b> 「품목별 국가별 수출입실적(GW)」(공공데이터포털). 국가 하나씩 조회하므로 주요 약 70개국을 모아 순위를 냅니다. 목록 밖 소규모 국가는 빠집니다.</li>
+      <li><b>UN Comtrade</b> 공개(preview) API. HS 6단위·연간이며 호출당 500건 제한이 있고 최신 연도는 일부 국가 자료가 아직 없을 수 있습니다.</li>
+      <li>금액은 모두 미국 달러 기준입니다.</li>
+    </ul>
+  </details>
+  <footer>데이터: 관세청(공공데이터포털), UN Comtrade · 이 화면은 참고용이며 법률·투자 자문이 아닙니다.</footer>
+</div>
+
+<script>
+/* ================= 설정 ================= */
+const DEFAULT_PROXY = '';   // 중계 서버를 배포하면 여기에 …/exec 주소를 넣는다
+const cfg = { proxy: DEFAULT_PROXY };
+try { const s = JSON.parse(localStorage.getItem('trade.cfg') || '{}'); if (s.proxy) cfg.proxy = s.proxy; } catch (e) {}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+if (!new URLSearchParams(location.search).has('admin')){ $('gear').style.display = 'none'; $('settings').remove(); }
+else {
+  $('proxy').value = cfg.proxy;
+  $('gear').addEventListener('click', () => $('settings').classList.toggle('open'));
+  $('saveCfg').addEventListener('click', () => {
+    cfg.proxy = $('proxy').value.trim();
+    try { localStorage.setItem('trade.cfg', JSON.stringify({proxy: cfg.proxy})); } catch (e) {}
+    $('cfgMsg').textContent = '저장했습니다.';
+  });
+  $('pingBtn').addEventListener('click', async () => {
+    cfg.proxy = $('proxy').value.trim();
+    $('cfgMsg').textContent = '확인 중…';
+    try { const j = await viaProxy('ping', {}); $('cfgMsg').textContent = j.ok ? ('연결됨 · 관세청 인증키 ' + (j.key ? '등록됨' : '없음(스크립트 속성 DATA_GO_KEY 필요)')) : '응답이 이상합니다.'; }
+    catch (e) { $('cfgMsg').textContent = '연결 실패: ' + e.message; }
+  });
+}
+
+/* ================= 기준 자료 ================= */
+// [ISO2, UN M49(Comtrade), 한글명]
+const COUNTRIES = [
+['US',842,'미국'],['CN',156,'중국'],['VN',704,'베트남'],['JP',392,'일본'],['HK',344,'홍콩'],['TW',490,'대만'],['IN',699,'인도'],['SG',702,'싱가포르'],
+['MX',484,'멕시코'],['DE',276,'독일'],['AU',36,'호주'],['ID',360,'인도네시아'],['MY',458,'말레이시아'],['TH',764,'태국'],['PH',608,'필리핀'],['TR',792,'튀르키예'],
+['PL',616,'폴란드'],['RU',643,'러시아'],['GB',826,'영국'],['AE',784,'아랍에미리트'],['SA',682,'사우디아라비아'],['CA',124,'캐나다'],['BR',76,'브라질'],['NL',528,'네덜란드'],
+['FR',251,'프랑스'],['IT',381,'이탈리아'],['ES',724,'스페인'],['HU',348,'헝가리'],['SK',703,'슬로바키아'],['CZ',203,'체코'],['BE',56,'벨기에'],['EG',818,'이집트'],
+['KZ',398,'카자흐스탄'],['UZ',860,'우즈베키스탄'],['IL',376,'이스라엘'],['CL',152,'칠레'],['CO',170,'콜롬비아'],['PE',604,'페루'],['ZA',710,'남아프리카공화국'],['NG',566,'나이지리아'],
+['PK',586,'파키스탄'],['BD',50,'방글라데시'],['KH',116,'캄보디아'],['MM',104,'미얀마'],['MN',496,'몽골'],['NZ',554,'뉴질랜드'],['QA',634,'카타르'],['KW',414,'쿠웨이트'],
+['AR',32,'아르헨티나'],['SE',752,'스웨덴'],['CH',757,'스위스'],['AT',40,'오스트리아'],['DK',208,'덴마크'],['FI',246,'핀란드'],['NO',579,'노르웨이'],['PT',620,'포르투갈'],
+['GR',300,'그리스'],['RO',642,'루마니아'],['UA',804,'우크라이나'],['KE',404,'케냐'],['LK',144,'스리랑카'],['JO',400,'요르단'],['IQ',368,'이라크'],['OM',512,'오만'],
+['MA',504,'모로코'],['DZ',12,'알제리'],['GH',288,'가나'],['ET',231,'에티오피아'],['TZ',834,'탄자니아'],['LA',418,'라오스'],['NP',524,'네팔'],['IE',372,'아일랜드'],
+['BG',100,'불가리아'],['HR',191,'크로아티아']
+];
+const BY_M49 = new Map(COUNTRIES.map(c => [c[1], c]));
+const BY_ISO = new Map(COUNTRIES.map(c => [c[0], c]));
+
+// 자주 쓰는 수출 품목 → HS 6단위 (참고용)
+const KO_HS = [
+['화장품·기초화장품(기타)','330499',['화장품','기초화장품','스킨케어','크림','로션','에센스','세럼','마스크팩','팩']],
+['립·입술용 메이크업','330410',['립스틱','립','입술']],['눈 화장용','330420',['아이섀도','마스카라','아이라이너','눈화장']],['파우더·쿠션 등 분말형','330491',['파우더','쿠션','팩트']],
+['샴푸','330510',['샴푸','헤어']],['향수','330300',['향수']],['치약·구강용','330610',['치약']],['비누','340111',['비누']],
+['라면·파스타류(기타)','190230',['라면','국수','면류','파스타']],['냉동만두 등 속을 채운 파스타','190220',['만두']],['즉석밥·조리된 곡물','190490',['즉석밥','햇반','시리얼']],
+['김치·조제 채소(기타)','200599',['김치']],['조제 김(해조류)','200899',['김','해태','해조','김스낵']],['과자·베이커리(기타)','190590',['과자','베이커리','쿠키','빵']],['비스킷(감미)','190531',['비스킷','쿠키']],
+['초콜릿 제품','180690',['초콜릿']],['사탕·당과','170490',['사탕','캔디','젤리']],['인삼(뿌리)','121120',['인삼','홍삼','수삼']],['건강기능식품·기타 조제식료품','210690',['건강기능식품','건기식','영양제','비타민','홍삼제품']],
+['커피 조제품(커피믹스)','210112',['커피믹스','커피']],['인스턴트 커피','210111',['인스턴트커피']],['장류·소스류','210390',['고추장','소스','양념','된장']],['간장','210310',['간장']],
+['소주·증류주','220890',['소주','증류주','위스키','술']],['막걸리·발효주','220600',['막걸리']],['맥주','220300',['맥주']],['쌀','100630',['쌀']],
+['딸기','081010',['딸기']],['배','080830',['배','과일']],['파프리카','070960',['파프리카','고추']],['반려동물 사료','230910',['사료','펫푸드']],
+['메모리 반도체','854232',['메모리','디램','낸드','dram','nand']],['반도체(프로세서·컨트롤러)','854231',['프로세서','반도체','칩','시스템반도체']],['기타 집적회로','854239',['집적회로','반도체']],
+['OLED 디스플레이 모듈','852412',['oled','디스플레이','올레드']],['스마트폰','851713',['스마트폰','휴대폰','핸드폰']],['LED(발광다이오드)','854141',['led','엘이디']],['태양광 모듈','854143',['태양광','태양전지','솔라']],
+['리튬이온 배터리','850760',['배터리','리튬','이차전지','2차전지']],['승용차(1,500~3,000cc)','870323',['자동차','승용차','차량']],['전기차','870380',['전기차','ev']],['자동차 부품(기타)','870899',['자동차부품','차부품']],
+['승용차용 신품 타이어','401110',['타이어']],['TV 수상기','852872',['텔레비전','tv','티비']],['냉장고','841810',['냉장고']],['세탁기(10kg 이하)','845011',['세탁기']],['에어컨','841510',['에어컨']],
+['굴삭기','842952',['굴삭기','포크레인','건설기계']],['산업용 로봇·기타 기계','847950',['로봇']],['선박(유조선 등)','890120',['선박','유조선']],
+['의약품(소매용 기타)','300490',['의약품','약','제약']],['면역제품(소매용·바이오의약)','300215',['바이오','바이오시밀러','면역']],['의료기기(기타)','901890',['의료기기','의료']],['초음파 진단기','901812',['초음파']],
+['장난감','950300',['장난감','완구']],['면 티셔츠','610910',['티셔츠','의류','옷']],['신발류','6403',['신발','운동화']],['핸드백·가방','4202',['가방','핸드백']],['가구','9401',['가구','의자']],
+['보건용 마스크 등 방직섬유 제품','630790',['마스크']],['전선·케이블','854449',['전선','케이블']]
+];
+
+/* ================= 공통 도구 ================= */
+const num = v => { const n = Number(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : 0; };
+function usd(v){
+  v = Math.round(v);
+  if (v >= 1e8) return (v / 1e8).toFixed(v >= 1e9 ? 1 : 2) + '억 달러';
+  if (v >= 1e4) return Math.round(v / 1e4).toLocaleString() + '만 달러';
+  return v.toLocaleString() + ' 달러';
+}
+const pct = v => (v >= 10 ? v.toFixed(0) : v.toFixed(1)) + '%';
+function countryName(code, ref){
+  const c = BY_M49.get(+code);
+  if (c) return c[2];
+  const r = ref && ref.get(+code);
+  return r ? r.en : '코드 ' + code;
+}
+function hbars(items, cls){
+  const max = Math.max(...items.map(i => i.value), 1);
+  return items.map((it, i) => `<div class="hb ${cls || ''}"><span class="n">${i + 1}</span><span class="l" title="${esc(it.label)}">${esc(it.label)}</span>` +
+    `<span class="t"><i style="width:${Math.max(it.value / max * 100, 1.5)}%"></i></span><span class="v">${usd(it.value)}</span></div>`).join('');
+}
+function toCsv(rows){ return '﻿' + rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(',')).join('\r\n'); }
+function download(name, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/csv;charset=utf-8'}));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+const cleanHs = s => String(s || '').replace(/\D/g, '');
+const errBox = m => `<div class="err">${esc(m)}</div>`;
+
+/* ================= API ================= */
+async function getJson(url){
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 90000);
+  try {
+    const r = await fetch(url, {signal: ctl.signal});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? '응답이 너무 늦습니다.' : (e.message === 'Failed to fetch' ? '서버에 연결하지 못했습니다(주소·CORS 확인).' : e.message));
+  } finally { clearTimeout(t); }
+}
+async function viaProxy(a, params){
+  if (!cfg.proxy) throw new Error('중계 서버가 설정되지 않았습니다.');
+  const j = await getJson(cfg.proxy + (cfg.proxy.includes('?') ? '&' : '?') + new URLSearchParams({a, ...params}));
+  if (j && j.error) throw new Error(j.error + (j.raw ? '\n' + j.raw : ''));
+  return j;
+}
+const CT_BASE = 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
+const cmCache = new Map();
+async function comtrade(params){
+  const key = JSON.stringify(params);
+  if (cmCache.has(key)) return cmCache.get(key);
+  let j;
+  if (cfg.proxy) j = await viaProxy('comtrade', params);
+  else {
+    try { j = await getJson(CT_BASE + '?' + new URLSearchParams(params)); }
+    catch (e) { throw new Error('UN Comtrade를 직접 호출하지 못했습니다. (' + e.message + ')\n중계 서버를 설정하면 해결될 수 있습니다.'); }
+  }
+  if (j && (j.error || j.statusCode >= 400)) throw new Error('UN Comtrade: ' + (j.error || j.message || j.statusCode));
+  cmCache.set(key, j);
+  return j;
+}
+// 한 파트너당 한 값만 남긴다 (집계행 우선)
+function cmAggregate(rows){
+  const by = new Map();
+  rows.forEach(r => {
+    const code = Number(r.partnerCode);
+    const val = num(r.primaryValue ?? r.fobvalue ?? r.cifvalue);
+    const isAgg = (r.motCode == null || +r.motCode === 0) && (r.customsCode == null || r.customsCode === 'C00') && (r.partner2Code == null || +r.partner2Code === 0);
+    const cur = by.get(code);
+    if (!cur || (isAgg && !cur.agg) || (isAgg === cur.agg && val > cur.val)) by.set(code, {code, val, agg: isAgg});
+  });
+  return by;
+}
+const CT_AGG = {motCode: 0, customsCode: 'C00', partner2Code: 0};
+async function koreaExports(hs6, year){
+  const j = await comtrade({reporterCode: 410, flowCode: 'X', cmdCode: hs6, period: year, ...CT_AGG});
+  return toArr(j.data);
+}
+const toArr = v => Array.isArray(v) ? v : [];
+
+let refPartners = null, refPromise = null;
+function loadRef(){
+  if (refPromise) return refPromise;
+  refPromise = (async () => {
+    let j;
+    try { j = await getJson('https://comtradeapi.un.org/files/v1/app/reference/partnerAreas.json'); }
+    catch (e) { try { j = await viaProxy('ref', {name: 'partnerAreas'}); } catch (e2) { return new Map(); } }
+    const m = new Map();
+    toArr(j.results).forEach(r => {
+      const code = +(r.PartnerCode ?? r.id), en = r.PartnerDesc ?? r.text;
+      if (Number.isFinite(code) && en) m.set(code, {en, iso2: r.PartnerCodeIsoAlpha2});
+    });
+    refPartners = m; return m;
+  })();
+  return refPromise;
+}
+
+/* ===== 관세청 (중계 서버 필요) ===== */
+const ISO_LIST = COUNTRIES.map(c => c[0]);
+async function customsRank(hs, from, to, isoList){
+  const out = new Map(); let name = '', firstErr = '', okCount = 0, emptyAll = true;
+  const chunks = []; for (let i = 0; i < isoList.length; i += 35) chunks.push(isoList.slice(i, i + 35));
+  const res = await Promise.all(chunks.map(c => viaProxy('customs', {hs, from, to, cnty: c.join(',')})));
+  res.forEach(r => Object.entries(r.results || {}).forEach(([iso, v]) => {
+    if (v.error || (v.code && v.code !== '00')) { if (!firstErr) firstErr = v.error || (v.msg || v.code); return; }
+    okCount++;
+    const rows = v.rows || [];
+    if (rows.length) emptyAll = false;
+    let tot = 0, exp = 0, imp = 0;
+    const totalRow = rows.find(x => /총|합계|total/i.test(String(x.year || '')));
+    (totalRow ? [totalRow] : rows).forEach(x => { exp += num(x.expDlr); imp += num(x.impDlr); if (!name && x.statKor) name = x.statKor; });
+    out.set(iso, {exp, imp, rows});
+  }));
+  return {map: out, name, firstErr, okCount, emptyAll};
+}
+
+/* ================= 탭 ================= */
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.p)));
+function showTab(p){
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.p === p));
+  document.querySelectorAll('.panel').forEach(x => x.classList.toggle('on', x.id === 'p-' + p));
+}
+// 선택한 HS를 모든 탭 입력칸에 공유
+function setHs(code){ ['rkHs', 'wdHs', 'tdHs'].forEach(id => $(id).value = code); }
+function goAnalyze(code, tab){
+  setHs(code); showTab(tab);
+  ({rank: runRank, world: runWorld, trend: () => {}})[tab]();
+}
+
+/* ---------- ① HS 찾기 ---------- */
+let hsList = null, hsPromise = null;
+function loadHs(){
+  if (hsPromise) return hsPromise;
+  hsPromise = (async () => {
+    let j;
+    try { j = await getJson('https://comtradeapi.un.org/files/v1/app/reference/HS.json'); }
+    catch (e) { try { j = await viaProxy('ref', {name: 'HS'}); } catch (e2) { throw new Error('UN HS 분류표를 불러오지 못했습니다. (' + e2.message + ')'); } }
+    hsList = toArr(j.results).map(r => ({id: String(r.id), text: String(r.text || '').replace(/^\s*[\d.]+\s*-\s*/, ''), parent: r.parent}));
+    return hsList;
+  })();
+  hsPromise.catch(() => { hsPromise = null; });
+  return hsPromise;
+}
+const fmtHs = c => c.length === 6 ? c.slice(0, 4) + '.' + c.slice(4) : c.length === 10 ? c.slice(0, 4) + '.' + c.slice(4, 6) + '-' + c.slice(6) : c;
+function hsRows(items){
+  return `<div class="card scroll"><table><thead><tr><th>HS코드</th><th>품목</th><th></th></tr></thead><tbody>` +
+    items.map(it => `<tr><td><b>${fmtHs(it.code)}</b></td><td>${esc(it.ko || '')}${it.ko && it.en ? '<br>' : ''}<span style="color:var(--sub);font-size:12.5px">${esc(it.en || '')}</span></td>` +
+      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}</td></tr>`).join('') +
+    `</tbody></table></div>`;
+}
+async function runHs(){
+  const q = $('hsq').value.trim(); const out = $('hsOut');
+  if (!q) return;
+  let html = '';
+  const digits = cleanHs(q);
+  const isCode = /^[\d.\-\s]+$/.test(q) && digits.length >= 2;
+  const items = [];
+  if (!isCode){
+    const ql = q.toLowerCase().replace(/\s+/g, '');
+    KO_HS.filter(([n, , al]) => n.replace(/\s+/g, '').toLowerCase().includes(ql) || al.some(a => a.toLowerCase().includes(ql) || ql.includes(a.toLowerCase())))
+      .forEach(([n, code]) => items.push({code, ko: n, en: ''}));
+    if (items.length) html += `<div class="sec" style="margin:6px 0"><span class="tag ok">자주 쓰는 수출 품목</span><span class="hint">참고용 — 세부 품목에 따라 코드가 달라질 수 있습니다.</span></div>` + hsRows(items.slice(0, 15));
+  }
+  out.innerHTML = html + '<div class="state">UN HS 분류표에서 찾는 중…</div>';
+  try {
+    const list = await loadHs();
+    let found = [];
+    if (isCode) {
+      const pre = digits.slice(0, 6);
+      found = list.filter(r => r.id.startsWith(pre) || pre.startsWith(r.id) && r.id.length >= 2 && r.id.length <= 6);
+      // 상위(장·호)와 하위를 함께 보여 준다
+      found.sort((a, b) => a.id.length - b.id.length || a.id.localeCompare(b.id));
+      found = found.filter(r => r.id.length >= 2).slice(0, 40);
+    } else if (/[a-z]/i.test(q)) {
+      const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+      found = list.filter(r => r.id.length === 6 && words.every(w => r.text.toLowerCase().includes(w))).slice(0, 40);
+    }
+    const fr = found.map(r => ({code: r.id, en: r.text, ko: (KO_HS.find(k => k[1] === r.id) || [])[0] || ''}));
+    if (fr.length) html += `<div class="sec" style="margin:10px 0 6px"><span class="tag">UN HS 분류표(영문)</span></div>` + hsRows(fr);
+    else if (!items.length) html += `<div class="state">찾지 못했습니다.${isCode || /[a-z]/i.test(q) ? '' : ' 한글 품목명이 사전에 없으면 영어 단어(예: cosmetics, noodles)로 찾아 보세요.'}</div>`;
+    out.innerHTML = html;
+  } catch (e) {
+    out.innerHTML = html + errBox(e.message) + (items.length ? '' : '<div class="state">한글 품목 사전에서도 찾지 못했습니다. 관세법령정보포털에서 HS를 검색해 보세요.</div>');
+  }
+}
+$('hsGo').addEventListener('click', runHs);
+$('hsq').addEventListener('keydown', e => { if (e.key === 'Enter') runHs(); });
+$('hsOut').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (b) goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a); });
+
+/* ---------- ② 순위 ---------- */
+let lastRank = null;
+async function runRank(){
+  const out = $('rkOut');
+  const hs = cleanHs($('rkHs').value);
+  if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요. (①탭에서 찾을 수 있습니다)'); return; }
+  const hs6 = hs.slice(0, 6), year = $('rkYear').value;
+  const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
+  setHs(hs);
+  out.innerHTML = '<div class="state">조회 중입니다… (관세청은 70개국을 조회해 30초 정도 걸릴 수 있습니다)</div>';
+  const [ref, cm, cu] = await Promise.all([
+    loadRef(),
+    koreaExports(hs6, year).then(r => ({rows: r}), e => ({err: e})),
+    cfg.proxy ? customsRank(hs, from, to, ISO_LIST).catch(e => ({err: e})) : Promise.resolve({noProxy: true})
+  ]);
+
+  // UN Comtrade
+  let cmMap = new Map(), cmErr = cm.err ? cm.err.message : '';
+  if (cm.rows){
+    cmAggregate(cm.rows).forEach((v, code) => { if (code !== 0 && v.val > 0) cmMap.set(code, v.val); });
+    if (!cmMap.size && !cmErr) cmErr = `${year}년 자료가 없습니다. 다른 연도를 선택하세요.`;
+  }
+  const cmTotal = [...cmMap.values()].reduce((a, b) => a + b, 0);
+  const cmTop = [...cmMap].sort((a, b) => b[1] - a[1]);
+  // 관세청
+  let cuErr = '', cuNote = '';
+  let cuTop = [];
+  if (cu.noProxy) cuNote = '관세청 연동은 중계 서버가 연결되면 표시됩니다. (현재는 UN Comtrade만 보입니다)';
+  else if (cu.err) cuErr = cu.err.message;
+  else {
+    cuTop = [...cu.map].map(([iso, v]) => [iso, v.exp]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+    if (!cuTop.length) cuErr = cu.firstErr ? '관세청 응답 오류: ' + cu.firstErr : (cu.emptyAll ? '해당 기간·품목의 수출 실적이 없습니다. HS 10자리로 입력하거나 기간을 바꿔 보세요.' : '수출 실적이 0입니다.');
+  }
+  const cuTotal = cuTop.reduce((a, b) => a + b[1], 0);
+
+  const box = (title, sub, items, total, err, note, cls) => `<div class="card"><h3>${title}</h3><div class="hint" style="margin:0 0 8px">${sub}</div>` +
+    (err ? errBox(err) : note ? `<div class="state" style="padding:12px">${esc(note)}</div>` :
+      `<div class="okbox" style="margin:0 0 8px">합계 ${usd(total)} · 1위 ${esc(items[0].label)} ${pct(items[0].value / total * 100)}</div>` + hbars(items.slice(0, 15), cls)) + `</div>`;
+  const cmItems = cmTop.map(([c, v]) => ({label: countryName(c, ref), value: v}));
+  const cuItems = cuTop.map(([iso, v]) => ({label: (BY_ISO.get(iso) || [0, 0, iso])[2], value: v}));
+  let html = `<div class="grid2">` +
+    box('관세청 · 통관 기준', `${fmtHs(hs)} · ${from.slice(0, 4)}.${from.slice(4)} ~ ${to.slice(0, 4)}.${to.slice(4)}${cu.name ? ' · ' + esc(cu.name) : ''}`, cuItems, cuTotal, cuErr, cuNote, 'b2') +
+    box('UN Comtrade · 국제 기준', `HS ${fmtHs(hs6)} · ${year}년 · 한국 → 각국`, cmItems, cmTotal, cmErr, '', '') + `</div>`;
+
+  // 비교표
+  const rows = new Map();
+  cmTop.slice(0, 20).forEach(([c, v]) => { const iso = (BY_M49.get(c) || [])[0]; rows.set(c, {c, iso, cm: v, cu: iso && cu.map ? (cu.map.get(iso) || {}).exp : undefined}); });
+  cuTop.slice(0, 20).forEach(([iso]) => { const c = (BY_ISO.get(iso) || [])[1]; if (c && !rows.has(c)) rows.set(c, {c, iso, cm: cmMap.get(c), cu: cu.map.get(iso).exp}); });
+  const list = [...rows.values()].sort((a, b) => (b.cu ?? b.cm ?? 0) - (a.cu ?? a.cm ?? 0));
+  if (list.length){
+    html += `<div class="card"><h3>한눈에 비교</h3><div class="hint" style="margin:0 0 8px">두 통계의 기간·기준이 다르므로 순위와 규모를 비교하는 용도로 보세요.</div><div class="scroll"><table><thead><tr><th>국가</th><th class="r">관세청 수출액</th><th class="r">UN Comtrade 수출액</th><th class="r">비중(관세청)</th></tr></thead><tbody>` +
+      list.map(r => `<tr><td>${esc(countryName(r.c, ref))}</td><td class="r">${r.cu != null ? usd(r.cu) : '-'}</td><td class="r">${r.cm != null ? usd(r.cm) : '-'}</td><td class="r">${r.cu && cuTotal ? pct(r.cu / cuTotal * 100) : '-'}</td></tr>`).join('') +
+      `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost" id="rkCsv" type="button">CSV로 저장</button><button class="btn ghost" id="rkCopy" type="button">표 복사(엑셀 붙여넣기용)</button></div></div>`;
+    lastRank = [['국가', '관세청 수출액(USD)', 'UN Comtrade 수출액(USD)'], ...list.map(r => [countryName(r.c, ref), r.cu ?? '', r.cm ?? ''])];
+  }
+  out.innerHTML = html;
+  $('rkCsv')?.addEventListener('click', () => download(`수출순위_${hs}.csv`, toCsv(lastRank)));
+  $('rkCopy')?.addEventListener('click', async e => { try { await navigator.clipboard.writeText(lastRank.map(r => r.join('\t')).join('\n')); e.target.textContent = '복사했습니다'; } catch (x) { e.target.textContent = '복사 실패'; } });
+}
+$('rkGo').addEventListener('click', runRank);
+
+/* ---------- ③ 세계 시장 ---------- */
+async function runWorld(){
+  const out = $('wdOut');
+  const hs6 = cleanHs($('wdHs').value).slice(0, 6);
+  if (hs6.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
+  const year = $('wdYear').value; setHs($('wdHs').value);
+  out.innerHTML = '<div class="state">세계 수입 통계를 불러오는 중…</div>';
+  try {
+    const [ref, wj, kr] = await Promise.all([
+      loadRef(),
+      comtrade({flowCode: 'M', cmdCode: hs6, period: year, partnerCode: 0, ...CT_AGG}),
+      koreaExports(hs6, year)
+    ]);
+    const imp = cmAggregate(toArr(wj.data).map(r => ({...r, partnerCode: r.reporterCode})));
+    const EXCL = new Set([0, 97, 899, 410]);   // 세계, EU, 미분류, 한국 자신
+    const kor = new Map(); cmAggregate(kr).forEach((v, c) => { if (c !== 0) kor.set(c, v.val); });
+    const list = [...imp].filter(([c, v]) => !EXCL.has(c) && v.val > 0).map(([c, v]) => ({c, imp: v.val, kr: kor.get(c) || 0}))
+      .map(x => ({...x, share: x.imp ? x.kr / x.imp * 100 : 0})).sort((a, b) => b.imp - a.imp);
+    if (!list.length){ out.innerHTML = errBox(`${year}년 세계 수입 자료가 없습니다. 연도를 바꾸거나 HS코드를 확인하세요.\n(UN Comtrade 공개 API는 일부 조합을 지원하지 않을 수 있습니다.)`); return; }
+    const top = list.slice(0, 20);
+    const opp = top.filter(x => x.share < 5).slice(0, 5);
+    let html = `<div class="card"><h3>HS ${fmtHs(hs6)} · ${year}년 세계 수입시장 상위 ${top.length}개국</h3>` +
+      `<div class="hint" style="margin:0 0 8px">집계 보고국 ${list.length}개국 기준 · 일부 국가는 아직 자료를 내지 않았을 수 있습니다.</div>` + hbars(top.map(x => ({label: countryName(x.c, ref), value: x.imp})), '') + `</div>`;
+    if (opp.length) html += `<div class="card"><h3>신규 개척 후보</h3><div class="hint" style="margin:0 0 8px">수입 규모가 큰 상위 20개국 중 한국 점유율이 5% 미만인 나라입니다.</div>` +
+      opp.map(x => `<span class="tag ok">${esc(countryName(x.c, ref))} · 수입 ${usd(x.imp)} · 한국 ${pct(x.share)}</span>`).join(' ') + `</div>`;
+    html += `<div class="card"><h3>국가별 한국 점유율</h3><div class="scroll"><table><thead><tr><th>#</th><th>국가</th><th class="r">수입액</th><th class="r">한국 수출액</th><th class="r">한국 점유율</th></tr></thead><tbody>` +
+      top.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(countryName(x.c, ref))}</td><td class="r">${usd(x.imp)}</td><td class="r">${x.kr ? usd(x.kr) : '-'}</td><td class="r">${x.kr ? pct(x.share) : '0%'}</td></tr>`).join('') +
+      `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost" id="wdCsv" type="button">CSV로 저장</button></div></div>`;
+    out.innerHTML = html;
+    $('wdCsv').addEventListener('click', () => download(`세계수입시장_${hs6}_${year}.csv`, toCsv([['국가', '수입액(USD)', '한국 수출액(USD)', '한국 점유율(%)'], ...top.map(x => [countryName(x.c, ref), x.imp, x.kr, x.share.toFixed(2)])])));
+  } catch (e) { out.innerHTML = errBox(e.message); }
+}
+$('wdGo').addEventListener('click', runWorld);
+
+/* ---------- ④ 추이 ---------- */
+function vbars(items){
+  const max = Math.max(...items.map(i => i.value), 1);
+  return `<div class="vb">` + items.map(i => `<div><b>${i.value ? usd(i.value).replace(' 달러', '') : ''}</b><i style="height:${Math.max(i.value / max * 140, 2)}px"></i><small>${esc(i.label)}</small></div>`).join('') + `</div>`;
+}
+$('tdYear').addEventListener('click', async () => {
+  const out = $('tdOut'); const hs6 = cleanHs($('tdHs').value).slice(0, 6); const m49 = +$('tdCty').value;
+  if (hs6.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
+  out.innerHTML = '<div class="state">최근 6개년 자료를 불러오는 중…</div>';
+  const y1 = new Date().getFullYear() - 1, years = [];
+  for (let y = y1 - 5; y <= y1; y++) years.push(y);
+  const res = await Promise.allSettled(years.map(y => comtrade({reporterCode: 410, partnerCode: m49, flowCode: 'X', cmdCode: hs6, period: y, ...CT_AGG})));
+  const items = years.map((y, i) => {
+    const r = res[i]; if (r.status !== 'fulfilled') return {label: String(y), value: 0, bad: r.reason.message};
+    const agg = cmAggregate(toArr(r.value.data)); const v = agg.get(m49);
+    return {label: String(y), value: v ? v.val : 0};
+  });
+  const bad = items.find(i => i.bad);
+  const name = (BY_M49.get(m49) || [0, 0, ''])[2];
+  const chg = items.length > 1 && items[items.length - 2].value ? (items[items.length - 1].value / items[items.length - 2].value - 1) * 100 : null;
+  out.innerHTML = `<div class="card"><h3>한국 → ${esc(name)} · HS ${fmtHs(hs6)} 연도별 수출액 (UN Comtrade)</h3>` + vbars(items) +
+    (chg != null ? `<p class="hint">${items[items.length - 1].label}년은 전년 대비 ${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%</p>` : '') +
+    (bad ? errBox('일부 연도 조회 실패: ' + bad.bad) : '') + `<p class="hint">최신 연도는 자료가 비어 있으면 0으로 보입니다.</p></div>`;
+});
+$('tdMonth').addEventListener('click', async () => {
+  const out = $('tdOut'); const hs = cleanHs($('tdHs').value); const iso = $('tdCty').selectedOptions[0].dataset.iso;
+  if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
+  if (!cfg.proxy){ out.innerHTML = errBox('월별 추이는 관세청 자료라 중계 서버 연결이 필요합니다.'); return; }
+  const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
+  out.innerHTML = '<div class="state">관세청 월별 자료를 불러오는 중…</div>';
+  try {
+    const r = await customsRank(hs, from, to, [iso]);
+    if (r.firstErr){ out.innerHTML = errBox('관세청 응답 오류: ' + r.firstErr); return; }
+    const rows = (r.map.get(iso) || {rows: []}).rows.filter(x => !/총|합계|total/i.test(String(x.year || '')));
+    const by = new Map(); rows.forEach(x => by.set(String(x.year), (by.get(String(x.year)) || 0) + num(x.expDlr)));
+    const items = [...by].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({label: k.slice(2).replace('.', '/'), value: v}));
+    out.innerHTML = items.length ? `<div class="card"><h3>한국 → ${esc((BY_ISO.get(iso) || [0, 0, iso])[2])} · HS ${fmtHs(hs)} 월별 수출액 (관세청)</h3>${vbars(items)}</div>`
+      : errBox('월별 자료가 없습니다. (기간·HS코드 확인, 또는 관세청이 월별로 나누어 주지 않는 품목일 수 있습니다)');
+  } catch (e) { out.innerHTML = errBox(e.message); }
+});
+
+/* ================= 초기화 ================= */
+(function init(){
+  const now = new Date(), y = now.getFullYear();
+  const ys = []; for (let i = y - 1; i >= y - 8; i--) ys.push(i);
+  ['rkYear', 'wdYear'].forEach(id => $(id).innerHTML = ys.map(v => `<option${v === y - 2 ? ' selected' : ''}>${v}</option>`).join(''));
+  const pm = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  const end = new Date(y, now.getMonth() - 1, 1), start = new Date(y, now.getMonth() - 12, 1);
+  $('rkTo').value = pm(end); $('rkFrom').value = pm(start);
+  $('tdCty').innerHTML = COUNTRIES.map(c => `<option value="${c[1]}" data-iso="${c[0]}">${c[2]}</option>`).join('');
+  const q = new URLSearchParams(location.search);
+  if (q.get('hs')){ setHs(cleanHs(q.get('hs'))); $('hsq').value = q.get('hs'); }
+})();
+</script>
+</body>
+</html>
