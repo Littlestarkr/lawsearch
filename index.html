@@ -179,7 +179,7 @@ const TOPICS = [
 ];
 
 const EXAMPLES = [
-  '직원이 퇴직금을 안 주면 어떻게 되나요?',
+  '사장이 퇴직금을 안 주면 어떻게 되나요?',
   '수출 처음 하는데 필요한 신고나 절차',
   '상가 월세 올릴 수 있는 한도',
   '하도급 대금을 늦게 주면 어떻게 되나요',
@@ -190,7 +190,7 @@ const EXAMPLES = [
 ];
 
 /* ---------- 질문 이해 ---------- */
-const STOP = new Set(['어떻게','어떤','무엇','뭐','경우','관련','알려줘','알려주세요','찾아줘','찾아주세요','있나요','되나요','할까요','궁금','질문','법령','법률','조항','규정','내용','하는','해야','한다','합니다','어디','언제','얼마','대해','대한','대하여','입니다','필요한','필요','방법']);
+const STOP = new Set(['사장','사장님','직원','회사','우리','저희','제가','내가','어떻게','어떤','무엇','뭐','경우','관련','알려줘','알려주세요','찾아줘','찾아주세요','있나요','되나요','할까요','궁금','질문','법령','법률','조항','규정','내용','하는','해야','한다','합니다','어디','언제','얼마','대해','대한','대하여','입니다','필요한','필요','방법']);
 const SUFFIX = /(으로서|으로써|에서는|에게서|이라고|이라는|입니다|인가요|되나요|하나요|할까요|하면|하는|해야|에서|에게|으로|이나|이란|에는|에도|은|는|이|가|을|를|에|의|도|로|과|와|랑)$/;
 
 function tokenize(q){
@@ -254,6 +254,7 @@ async function runSearch(raw){
   const q = raw.trim();
   if (!q) return;
   history.replaceState(null, '', '?q=' + encodeURIComponent(q));
+  $('chips').style.display = 'none';   // 검색하면 예시는 숨기고 결과를 바로 보여준다
   const out = $('out');
   out.innerHTML = '<div class="state">관련 법령을 찾는 중입니다…</div>';
 
@@ -450,6 +451,9 @@ async function openLaw(l){
 /* ---------- 초기화 ---------- */
 $('chips').innerHTML = EXAMPLES.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join('');
 $('chips').addEventListener('click', e => { if (e.target.classList.contains('chip')){ $('q').value = e.target.textContent; runSearch(e.target.textContent); } });
+$('q').addEventListener('input', () => {
+  if (!$('q').value.trim()){ $('chips').style.display = ''; $('out').innerHTML = ''; history.replaceState(null, '', location.pathname); }
+});
 $('form').addEventListener('submit', e => { e.preventDefault(); runSearch($('q').value); });
 $('vclose').addEventListener('click', () => $('viewer').close());
 $('viewer').addEventListener('click', e => { if (e.target === $('viewer')) $('viewer').close(); });
