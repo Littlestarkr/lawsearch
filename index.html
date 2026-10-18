@@ -66,6 +66,11 @@ mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .filter{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0 12px}
 details>summary{cursor:pointer;font-weight:700;padding:8px 0}
 .score{font-size:12px;color:var(--sub)}
+.guide{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 16px;margin:0 0 14px;font-size:14px}
+.guide summary{cursor:pointer;font-weight:700;padding:8px 0;color:var(--brand)}
+.guide ul{margin:4px 0 10px;padding-left:20px}
+.guide li{margin:6px 0}
+.guide code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13px}
 </style>
 </head>
 <body>
@@ -91,6 +96,15 @@ details>summary{cursor:pointer;font-weight:700;padding:8px 0}
     <input id="q" type="search" placeholder="예) 직원이 퇴직금을 안 주면 어떻게 되나요?" autocomplete="off" autofocus>
     <button type="submit">검색</button>
   </form>
+  <details class="guide">
+    <summary>검색 방법 보기</summary>
+    <ul>
+      <li><b>상황 그대로 적기</b> — 예) <code>사장이 퇴직금을 안 주면 어떻게 되나요?</code> 관련 주제의 법령을 추천하고, 조문을 열면 핵심 조문을 위에 보여 줍니다.</li>
+      <li><b>법령명 일부 적기</b> — 예) <code>국가를 당사자로 하는</code> 법령명에 이 말이 들어간 법령이 위쪽에 나옵니다.</li>
+      <li><b>따옴표로 정확히 찾기</b> — 예) <code>'국가를 당사자로'</code> 따옴표 안의 말이 <b>그대로 들어간</b> 법령과 조문만 찾습니다. 따옴표를 여러 개 쓰면 <b>모두 들어간</b> 것만 찾습니다. 예) <code>'선금' '지급한도'</code></li>
+      <li>따옴표는 <code>' '</code> 와 <code>" "</code> 모두 쓸 수 있습니다. 법령을 연 뒤에는 "전체 조문 보기"에서 그 법령 안의 단어도 찾을 수 있습니다.</li>
+    </ul>
+  </details>
   <div class="chips" id="chips"></div>
   <div class="notice">참고용 검색 도구입니다. 법률 자문이 아니며, 법령은 수시로 개정되므로 중요한 판단 전에는 국가법령정보센터 원문과 전문가를 통해 확인하세요.</div>
 
@@ -186,7 +200,8 @@ const EXAMPLES = [
   'FTA 원산지증명서 발급',
   '개인정보가 유출됐을 때 해야 할 일',
   '공공기관 입찰 참가자격 제한',
-  '육아휴직 급여 기간'
+  '육아휴직 급여 기간',
+  "'국가를 당사자로' '선금'"
 ];
 
 /* ---------- 질문 이해 ---------- */
@@ -236,8 +251,8 @@ async function api(path, params){
   } finally { clearTimeout(timer); }
 }
 
-async function searchLaws(query, mode){ // mode 1 = 법령명, 2 = 본문
-  const j = await api('/DRF/lawSearch.do', {target: 'law', query, search: String(mode), display: '20'});
+async function searchLaws(query, mode, display = '20'){ // mode 1 = 법령명, 2 = 본문
+  const j = await api('/DRF/lawSearch.do', {target: 'law', query, search: String(mode), display});
   return toArray(j?.LawSearch?.law);
 }
 
@@ -249,6 +264,7 @@ async function resolveLaw(name){
 /* ---------- 검색 실행 ---------- */
 const KIND_ORDER = {'법률':0,'대통령령':1,'총리령':2};
 let currentTerms = new Map();
+let currentExact = [];   // 따옴표로 지정한 정확한 검색어
 
 async function runSearch(raw){
   const q = raw.trim();
@@ -257,6 +273,11 @@ async function runSearch(raw){
   $('chips').style.display = 'none';   // 검색하면 예시는 숨기고 결과를 바로 보여준다
   const out = $('out');
   out.innerHTML = '<div class="state">관련 법령을 찾는 중입니다…</div>';
+
+  // 따옴표로 묶은 말이 있으면 그 말이 그대로 들어간 법령·조문만 찾는다
+  const phrases = [...q.matchAll(/['"‘’“”]([^'"‘’“”]+)['"‘’“”]/g)].map(m => m[1].trim()).filter(p => p.length >= 2);
+  currentExact = phrases;
+  if (phrases.length){ await runExact(phrases); return; }
 
   const topics = matchTopics(q);
   const strong = topics.filter(x => x.score >= 3);
@@ -315,6 +336,25 @@ async function runSearch(raw){
   renderResults(q, strong, toks, results);
 }
 
+async function runExact(phrases){
+  currentTerms = new Map(phrases.map(p => [p, 5]));
+  const settled = await Promise.allSettled(phrases.map(async p => ({
+    p, name: await searchLaws(p, 1, '100'), body: await searchLaws(p, 2, '100')
+  })));
+  const rows = settled.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if (!rows.length){ showError(settled[0]?.reason); return; }
+
+  const all = new Map();
+  rows.forEach(r => [...r.name, ...r.body].forEach(l => all.set(l.법령ID, l)));
+  const inName = (l, p) => norm(l.법령명한글).includes(norm(p));
+  const results = [...all.values()]
+    .filter(l => rows.every(r => inName(l, r.p) || r.body.some(b => b.법령ID === l.법령ID)))
+    .map(l => { const n = rows.every(r => inName(l, r.p)); return {...l, _src: n ? 'name' : 'body', _rank: n ? 130 : 50}; })
+    .sort((a, b) => (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9)))
+    .slice(0, 20);
+  renderResults(phrases.join(' '), [], [], results);
+}
+
 function showError(err){
   const msg = err?.message || '';
   const blocked = err instanceof TypeError || /Failed to fetch|NetworkError|Load failed|aborted/i.test(msg);
@@ -332,7 +372,11 @@ function lawUrl(name){ return 'https://www.law.go.kr/법령/' + encodeURICompone
 function renderResults(q, strong, toks, results){
   const out = $('out');
   let html = '';
-  if (strong.length){
+  if (currentExact.length){
+    html += `<div class="understood"><b>따옴표 안의 말이 그대로 들어간 법령만 찾았습니다.</b> ` +
+      currentExact.map(p => `<span class="tag">${esc(p)}</span>`).join('') +
+      `<br><span style="color:var(--sub)">법령명이나 조문에 이 말이 있는 법령입니다. 조문을 열면 해당 부분을 표시합니다.</span></div>`;
+  } else if (strong.length){
     html += `<div class="understood"><b>이렇게 이해했습니다.</b> ` +
       strong.map(x => `<span class="tag">${esc(x.tp.n)}</span>`).join('') +
       `<br><span style="color:var(--sub)">찾는 핵심어: ${[...currentTerms.keys()].slice(0, 10).map(esc).join(', ')}</span></div>`;
@@ -340,7 +384,7 @@ function renderResults(q, strong, toks, results){
     html += `<div class="understood"><b>입력하신 말을 그대로 검색했습니다.</b> 상황을 조금 더 구체적으로 적으면 더 잘 찾습니다. <br><span style="color:var(--sub)">검색어: ${toks.map(esc).join(', ')}</span></div>`;
   }
   if (!results.length){
-    out.innerHTML = html + '<div class="state">검색 결과가 없습니다. 다른 표현으로 다시 적어 보세요.</div>';
+    out.innerHTML = html + '<div class="state">' + (currentExact.length ? '따옴표로 지정한 말이 모두 들어간 법령을 찾지 못했습니다. 띄어쓰기와 철자를 확인하거나, 따옴표를 빼고 검색해 보세요.' : '검색 결과가 없습니다. 다른 표현으로 다시 적어 보세요.') + '</div>';
     return;
   }
   html += results.map((l, i) => {
@@ -395,7 +439,7 @@ function scoreArticle(art, terms){
 
 function highlighter(terms){
   const list = [...terms].filter(t => t.length >= 1).sort((a, b) => b.length - a.length)
-    .map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    .map(t => esc(t).trim().split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*'));
   if (!list.length) return s => esc(s);
   const re = new RegExp('(' + list.join('|') + ')', 'g');
   return s => esc(s).replace(re, '<mark>$1</mark>');
@@ -432,7 +476,13 @@ async function openLaw(l){
   const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)})).filter(x => x.s > 0).sort((x, y) => y.s - x.s).slice(0, 6);
 
   let html = '';
-  if (ranked.length){
+  if (currentExact.length){
+    const hitsA = arts.filter(a => !a.isHeading && currentExact.every(p => norm(a.text).includes(norm(p))));
+    html += hitsA.length
+      ? `<div class="sec">따옴표로 지정한 말이 모두 들어간 조문 (${hitsA.length}개)</div>` + hitsA.slice(0, 30).map(a => artHtml(a, law, hl)).join('') +
+        (hitsA.length > 30 ? '<div class="state">30개까지만 표시합니다. 아래 전체 조문에서 더 찾아보세요.</div>' : '')
+      : '<div class="state">이 법령의 조문 중 따옴표로 지정한 말이 모두 들어간 곳이 없습니다. 말이 여러 조문에 나뉘어 있거나 띄어쓰기가 다를 수 있습니다.</div>';
+  } else if (ranked.length){
     html += `<div class="sec">질문과 관련 깊은 조문 <span class="score">(핵심어 일치 순)</span></div>` + ranked.map(x => artHtml(x.a, law, hl)).join('');
   } else if (currentTerms.size){
     html += `<div class="state">입력하신 핵심어와 직접 일치하는 조문을 찾지 못했습니다. 아래 전체 조문에서 찾아 보세요.</div>`;
