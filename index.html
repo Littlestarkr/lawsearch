@@ -103,6 +103,7 @@ details>summary{cursor:pointer;font-weight:700;padding:8px 0}
       <li><b>법령명 일부 적기</b> — 예) <code>국가를 당사자로 하는</code> 법령명에 이 말이 들어간 법령이 위쪽에 나옵니다.</li>
       <li><b>따옴표로 정확히 찾기</b> — 예) <code>'국가를 당사자로'</code> 따옴표 안의 말이 <b>그대로 들어간</b> 법령과 조문만 찾습니다. 따옴표를 여러 개 쓰면 <b>모두 들어간</b> 것만 찾습니다. 예) <code>'선금' '지급한도'</code></li>
       <li>따옴표는 <code>' '</code> 와 <code>" "</code> 모두 쓸 수 있습니다. 법령을 연 뒤에는 "전체 조문 보기"에서 그 법령 안의 단어도 찾을 수 있습니다.</li>
+      <li><b>판례·법령해석례</b> — 상황을 적으면 법령 아래에 비슷한 <b>판례</b>와 <b>법령해석례</b>도 함께 나옵니다. 요지를 열어 실제로 어떻게 판단했는지 볼 수 있습니다.</li>
       <li><b>검색 범위</b> — 결과는 <b>법령</b>(법률·시행령·시행규칙), <b>행정규칙</b>(고시·훈령·예규), <b>자치법규</b>(조례·규칙) 구역으로 나뉘어 나옵니다.</li>
     </ul>
   </details>
@@ -406,6 +407,9 @@ async function runSearch(raw){
   const results = order.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
 
   renderResults(q, strong, toks, results);
+  // 같은 상황의 판례·법령해석례도 함께 찾는다 (구체적인 단어 → 주제 핵심어 순)
+  const caseTerms = [...new Set([...specific, ...(strong.length ? hits : toks)])].filter(t => !VERBISH.test(t)).slice(0, 2);
+  loadCases(caseTerms);
 }
 
 async function runExact(phrases){
@@ -490,6 +494,83 @@ function renderResults(q, strong, toks, results){
   });
   out.innerHTML = html;
   out.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => openLaw(results[+b.dataset.i])));
+}
+
+/* ---------- 판례·법령해석례 ---------- */
+const CASE_KINDS = {
+  prec: {label:'판례', sub:'법원 판결 · 비슷한 상황의 판결', btn:'판결 요지 보기'},
+  expc: {label:'법령해석례', sub:'법제처 등의 유권해석', btn:'해석 내용 보기'}
+};
+let caseItems = [];
+const rootOf = j => (j && typeof j === 'object') ? Object.values(j).find(v => v && typeof v === 'object' && !Array.isArray(v)) : null;
+function listOf(j){
+  const root = rootOf(j);
+  if (!root) return [];
+  const arr = Object.values(root).find(v => Array.isArray(v));
+  if (arr) return arr;
+  const one = Object.values(root).find(v => v && typeof v === 'object');
+  return one ? [one] : [];
+}
+function normCase(kind, x){
+  if (kind === 'prec') return {kind, id: x.판례일련번호, title: x.사건명, no: x.사건번호, date: x.선고일자,
+    who: [x.법원명, x.판결유형 || x.사건종류명].filter(Boolean).join(' · '), link: x.판례상세링크};
+  return {kind, id: x.법령해석례일련번호, title: x.안건명, no: x.안건번호, date: x.회신일자 || x.해석일자,
+    who: x.회신기관명 || '', link: x.법령해석례상세링크};
+}
+async function searchCases(kind, query){
+  const j = await api('/DRF/lawSearch.do', {target: kind, query, search: '2', display: '5'});
+  return listOf(j).map(x => normCase(kind, x)).filter(c => c.id && c.title);
+}
+// 상황에서 뽑은 핵심어(주어진 순서)로 검색하고, 두 단어 검색이 비면 첫 단어만으로 다시 찾는다
+async function findCases(kind, terms){
+  const two = terms.slice(0, 2).join(' ');
+  let r = await searchCases(kind, two);
+  if (!r.length && terms.length > 1) r = await searchCases(kind, terms[0]);
+  return r;
+}
+async function loadCases(terms){
+  if (!terms.length) return;
+  const box = document.createElement('div');
+  box.id = 'cases';
+  box.innerHTML = '<div class="sec">판례·법령해석례 <span class="score">비슷한 상황을 찾는 중…</span></div>';
+  $('out').appendChild(box);
+  const res = await Promise.allSettled(['prec', 'expc'].map(k => findCases(k, terms)));
+  if (!box.isConnected) return;       // 그 사이 새 검색이 시작됐으면 버린다
+  caseItems = [];
+  let html = '';
+  ['prec', 'expc'].forEach((k, n) => {
+    if (res[n].status !== 'fulfilled' || !res[n].value.length) return;
+    html += `<div class="sec">${CASE_KINDS[k].label} <span class="score">${CASE_KINDS[k].sub} · ${res[n].value.length}건</span></div>`;
+    res[n].value.forEach(c => {
+      const i = caseItems.push(c) - 1;
+      const link = c.link ? (/^https?:/.test(c.link) ? c.link : 'https://www.law.go.kr' + c.link) : '';
+      html += `<div class="card">
+        <h3>${esc(c.title)}</h3>
+        <div class="meta"><span class="badge">${CASE_KINDS[k].label}</span><span>${esc(c.no || '')}</span><span>·</span><span>${esc(c.who)}</span><span>·</span><span>${fmtDate(c.date)}</span></div>
+        <div class="actions"><button class="btn pri" data-case="${i}" type="button">${CASE_KINDS[k].btn}</button>${link ? `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">국가법령정보센터 원문</a>` : ''}</div>
+      </div>`;
+    });
+  });
+  box.innerHTML = html || '<div class="state" style="padding:12px 8px">관련 판례·법령해석례를 찾지 못했습니다.</div>';
+  box.querySelectorAll('button[data-case]').forEach(b => b.addEventListener('click', () => openCase(caseItems[+b.dataset.case])));
+}
+const cleanText = v => flat(v).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+async function openCase(c){
+  const dlg = $('viewer');
+  $('vt').textContent = c.title;
+  $('vm').innerHTML = `<span>${CASE_KINDS[c.kind].label}</span><span>·</span><span>${esc(c.no || '')}</span><span>·</span><span>${esc(c.who)}</span><span>·</span><span>${fmtDate(c.date)}</span>`;
+  $('vb').innerHTML = '<div class="state">내용을 불러오는 중입니다…</div>';
+  if (!dlg.open) dlg.showModal();
+  let data;
+  try { data = await api('/DRF/lawService.do', {target: c.kind, ID: c.id}); }
+  catch (e) { $('vb').innerHTML = `<div class="err">내용을 불러오지 못했습니다. ${esc(e.message || '')}</div>`; return; }
+  const root = rootOf(data) || {};
+  const fields = c.kind === 'prec' ? ['판시사항', '판결요지', '참조조문', '참조판례'] : ['질의요지', '회답', '이유'];
+  const hl = highlighter(currentTerms.keys());
+  let html = fields.filter(f => root[f]).map(f =>
+    `<div class="art"><div class="ah"><b>${f}</b></div><div style="white-space:pre-wrap;font-size:14.5px">${hl(cleanText(root[f]))}</div></div>`).join('');
+  if (!html && root.판례내용) html = `<div class="art"><div style="white-space:pre-wrap;font-size:14.5px">${hl(cleanText(root.판례내용).slice(0, 6000))}</div></div>`;
+  $('vb').innerHTML = html || '<div class="state">표시할 내용이 없습니다. 위쪽 원문 링크를 이용하세요.</div>';
 }
 
 /* ---------- 조문 보기 ---------- */
