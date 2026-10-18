@@ -287,6 +287,11 @@ async function runSearch(raw){
   nameTerms.forEach(t => jobs.push(
     searchLaws(t, 1).then(a => a.map((l, i) => ({...l, _src:'name', _rank:60 - i * 0.1})))
   ));
+  // 법령명의 일부를 그대로 적은 경우를 위해 입력한 문장 전체도 법령명으로 검색한다
+  const phrase = q.replace(/[?!.,~]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (phrase.length >= 3 && phrase.length <= 40 && phrase !== nameTerms[0]){
+    jobs.push(searchLaws(phrase, 1).then(a => a.map((l, i) => ({...l, _src:'name', _rank:90 - i * 0.1}))));
+  }
   const bodyTerms = [...new Set([specific[0], strong[0]?.tp.t[0], nameTerms[0]].filter(Boolean))].slice(0, 2);
   bodyTerms.forEach(t => jobs.push(
     searchLaws(t, 2).then(a => a.slice(0, 10).map((l, i) => ({...l, _src:'body', _rank:20 - i * 0.1})))
@@ -301,7 +306,9 @@ async function runSearch(raw){
     const prev = byId.get(l.법령ID);
     if (!prev || l._rank > prev._rank) byId.set(l.법령ID, l);
   });
-  const results = [...byId.values()].sort((a, b) =>
+  const needAll = toks.length >= 2 ? toks.map(t => norm(t)) : [];
+  const allIn = l => needAll.length > 0 && needAll.every(t => norm(l.법령명한글).includes(t));
+  const results = [...byId.values()].map(l => ({...l, _rank: l._rank + (allIn(l) ? 30 : 0)})).sort((a, b) =>
     (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9))
   ).slice(0, 15);
 
