@@ -615,8 +615,10 @@ $('q').addEventListener('input', () => {
 $('form').addEventListener('submit', e => { e.preventDefault(); runSearch($('q').value); });
 $('vclose').addEventListener('click', () => $('viewer').close());
 $('viewer').addEventListener('click', e => { if (e.target === $('viewer')) $('viewer').close(); });
-$('gear').addEventListener('click', () => { $('oc').value = cfg.oc; $('proxy').value = cfg.proxy; $('settings').classList.toggle('open'); });
-$('save').addEventListener('click', () => {
+// 방문자에게는 설정(인증키·중계 서버)을 숨기고, 주소 뒤에 ?admin=1 을 붙였을 때만 보여준다
+if (!new URLSearchParams(location.search).has('admin')){ $('gear').style.display = 'none'; $('settings').remove(); }
+else $('gear').addEventListener('click', () => { $('oc').value = cfg.oc; $('proxy').value = cfg.proxy; $('settings').classList.toggle('open'); });
+$('save')?.addEventListener('click', () => {
   cfg.oc = $('oc').value.trim() || DEFAULT_OC;
   cfg.proxy = $('proxy').value.trim();
   try { localStorage.setItem('lawsearch.cfg', JSON.stringify(cfg)); } catch (e) {}
