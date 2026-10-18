@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>법령 길잡이</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
+  --brand:#14507a; --brand-ink:#ffffff; --soft:#e8f1f8; --mark:#fff3a8; --warn:#fff6e5; --warn-line:#f0c36d;
+  --ok:#e7f6ee; --ok-ink:#176640;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10151b; --card:#18202a; --ink:#e8edf2; --sub:#9aa7b6; --line:#2a3542; --brand:#5aa9dd; --brand-ink:#0b1722; --soft:#17283a; --mark:#5c4f10; --warn:#2a2412; --warn-line:#6b5a22; --ok:#12301f; --ok-ink:#7fd6a4;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;line-height:1.6}
+.wrap{max-width:860px;margin:0 auto;padding:28px 16px 60px}
+header h1{margin:0;font-size:26px;letter-spacing:-.02em}
+header p{margin:6px 0 0;color:var(--sub);font-size:15px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.gear{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+.box{display:flex;gap:8px;margin:22px 0 10px}
+.box input{flex:1;min-width:0;font-size:17px;padding:14px 16px;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);outline:none}
+.box input:focus{border-color:var(--brand)}
+.box button{font-size:16px;padding:0 22px;border:0;border-radius:12px;background:var(--brand);color:var(--brand-ink);font-weight:700;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--brand)}
+.notice{background:var(--warn);border:1px solid var(--warn-line);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--ink);margin:0 0 18px}
+.settings{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px}
+.settings.open{display:block}
+.settings label{display:block;font-size:13px;color:var(--sub);margin:8px 0 4px}
+.settings input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.settings small{color:var(--sub);display:block;margin-top:6px}
+.settings button{margin-top:10px;padding:8px 16px;border:0;border-radius:8px;background:var(--brand);color:var(--brand-ink);cursor:pointer}
+.understood{background:var(--soft);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14px}
+.understood b{font-weight:700}
+.tag{display:inline-block;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 8px;margin:2px 4px 2px 0;font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.card h3{margin:0 0 6px;font-size:18px;letter-spacing:-.01em}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--sub)}
+.badge{padding:2px 8px;border-radius:6px;background:var(--soft);color:var(--brand);font-weight:600;font-size:12px}
+.badge.rec{background:var(--ok);color:var(--ok-ink)}
+.actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:7px 14px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.pri{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+.state{padding:26px 8px;text-align:center;color:var(--sub)}
+.err{background:var(--warn);border:1px solid var(--warn-line);border-radius:12px;padding:14px 16px;font-size:14px}
+.err code{background:var(--card);padding:1px 6px;border-radius:5px}
+footer{margin-top:30px;font-size:12.5px;color:var(--sub)}
+dialog{width:min(860px,100vw);max-width:100vw;height:min(88vh,100vh);border:0;border-radius:16px;padding:0;background:var(--bg);color:var(--ink)}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+.dh{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);padding:14px 18px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;z-index:2}
+.dh h2{margin:0;font-size:19px}
+.dbody{padding:16px 18px 40px}
+.art{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px}
+.art .ah{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:4px}
+.art .ah b{font-size:15px}
+.art a{font-size:12.5px;color:var(--brand)}
+.ln{margin:2px 0;font-size:14.5px}
+.l1{padding-left:0}.l2{padding-left:16px;color:var(--ink)}.l3{padding-left:32px}
+.heading{font-weight:700;color:var(--brand);margin:18px 0 8px;font-size:14px}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+.sec{margin:18px 0 8px;font-weight:700;font-size:15px}
+.filter{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0 12px}
+details>summary{cursor:pointer;font-weight:700;padding:8px 0}
+.score{font-size:12px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>법령 길잡이</h1>
+      <p>정확한 법령명을 몰라도 됩니다. 궁금한 상황을 편하게 적어 보세요.</p>
+    </div>
+    <button class="gear" id="gear" type="button">⚙ 설정</button>
+  </header>
+
+  <div class="settings" id="settings">
+    <label for="oc">법제처 API 인증키(OC)</label>
+    <input id="oc" autocomplete="off">
+    <label for="proxy">중계 서버 주소 (선택)</label>
+    <input id="proxy" placeholder="예: https://law-proxy.your-name.workers.dev" autocomplete="off">
+    <small>브라우저에서 법제처 서버를 직접 호출할 수 없을 때만 입력합니다. 비워 두면 직접 호출합니다.</small>
+    <button id="save" type="button">저장</button>
+  </div>
+
+  <form class="box" id="form">
+    <input id="q" type="search" placeholder="예) 직원이 퇴직금을 안 주면 어떻게 되나요?" autocomplete="off" autofocus>
+    <button type="submit">검색</button>
+  </form>
+  <div class="chips" id="chips"></div>
+  <div class="notice">참고용 검색 도구입니다. 법률 자문이 아니며, 법령은 수시로 개정되므로 중요한 판단 전에는 국가법령정보센터 원문과 전문가를 통해 확인하세요.</div>
+
+  <div id="out"></div>
+
+  <footer>법령 데이터 출처: 법제처 국가법령정보 공동활용(open.law.go.kr)</footer>
+</div>
+
+<dialog id="viewer">
+  <div class="dh">
+    <div><h2 id="vt"></h2><div class="meta" id="vm"></div></div>
+    <button class="btn" id="vclose" type="button">닫기</button>
+  </div>
+  <div class="dbody" id="vb"></div>
+</dialog>
+
+<script>
+/* ---------- 설정 ---------- */
+const DEFAULT_OC = 'happyojh';
+const cfg = { oc: DEFAULT_OC, proxy: '' };
+try {
+  const s = JSON.parse(localStorage.getItem('lawsearch.cfg') || '{}');
+  if (s.oc) cfg.oc = s.oc;
+  if (s.proxy) cfg.proxy = s.proxy;
+} catch (e) {}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toArray = v => v == null || v === '' ? [] : Array.isArray(v) ? v : [v];
+const flat = v => Array.isArray(v) ? v.flat(Infinity).join('\n') : String(v ?? '');
+const norm = s => String(s).replace(/\s+/g, '').replace(/[·ㆍ‧]/g, '·');
+
+/* ---------- 상황 → 법령 연결 사전 ---------- */
+/* k: 상황을 알아보는 말, laws: 같이 볼 법령, t: 조문에서 찾을 핵심어 */
+const TOPICS = [
+ {n:'퇴직금·퇴직연금', k:['퇴직금','퇴직연금','퇴직급여','중간정산','퇴사'], laws:['근로자퇴직급여 보장법','근로기준법'], t:['퇴직금','퇴직급여','14일','지급']},
+ {n:'해고·권고사직', k:['해고','잘리','권고사직','부당해고','해고예고','정리해고','해직'], laws:['근로기준법'], t:['해고','해고의 예고','정당한 이유','30일']},
+ {n:'임금·체불·최저임금', k:['임금','월급','체불','최저임금','통상임금','주휴','급여','못 받'], laws:['근로기준법','최저임금법','임금채권보장법'], t:['임금','체불','최저임금','지급']},
+ {n:'근로계약·채용·비정규직', k:['근로계약','채용','수습','계약직','기간제','비정규직','파견','정규직','근로조건'], laws:['근로기준법','기간제 및 단시간근로자 보호 등에 관한 법률','파견근로자 보호 등에 관한 법률'], t:['근로계약','기간제','계약기간','2년']},
+ {n:'근로시간·휴가', k:['연차','휴가','휴게','연장근로','야간근로','휴일근로','근로시간','주52시간','52시간','초과근무','야근'], laws:['근로기준법'], t:['연차','유급휴가','연장근로','근로시간','휴게']},
+ {n:'육아휴직·출산', k:['육아휴직','출산','육아','배우자 출산','모성','임신','돌봄'], laws:['남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률','근로기준법'], t:['육아휴직','출산전후휴가','배우자 출산휴가','급여']},
+ {n:'산재·안전', k:['산재','산업재해','중대재해','안전보건','다쳤','재해','안전사고'], laws:['산업재해보상보험법','산업안전보건법','중대재해 처벌 등에 관한 법률'], t:['산업재해','안전','보건','중대재해']},
+ {n:'4대보험', k:['4대보험','고용보험','국민연금','건강보험','사회보험','실업급여','보험료'], laws:['고용보험법','국민연금법','국민건강보험법'], t:['실업급여','보험료','가입','피보험자']},
+ {n:'직장 내 괴롭힘·성희롱', k:['괴롭힘','갑질','성희롱','직장내','직장 내'], laws:['근로기준법','남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률'], t:['괴롭힘','성희롱','조사','불리한 처우']},
+ {n:'노동조합·노사', k:['노조','노동조합','단체교섭','파업','쟁의','노사','노동위원회','근로자대표'], laws:['노동조합 및 노동관계조정법','근로자참여 및 협력증진에 관한 법률'], t:['단체교섭','쟁의행위','노동조합']},
+ {n:'외국인 고용', k:['외국인근로자','외국인 근로자','고용허가','비자','체류','외국인 직원'], laws:['외국인근로자의 고용 등에 관한 법률','출입국관리법'], t:['고용허가','외국인근로자','체류']},
+ {n:'개인정보', k:['개인정보','정보유출','cctv','씨씨티비','주민등록번호','유출'], laws:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률'], t:['개인정보','동의','유출','처리']},
+ {n:'상가 임대차', k:['상가','임대차','월세','임차','권리금','임대료','건물주','계약갱신','보증금'], laws:['상가건물 임대차보호법','민법'], t:['보증금','계약갱신','권리금','임대료','차임']},
+ {n:'주택 임대차', k:['전세','주택임대','전월세','임대차보호'], laws:['주택임대차보호법'], t:['보증금','계약갱신','대항력']},
+ {n:'부가가치세', k:['부가세','부가가치세','세금계산서','매입세액','간이과세','면세'], laws:['부가가치세법','조세특례제한법'], t:['부가가치세','세금계산서','간이과세','매입세액']},
+ {n:'법인세·소득세', k:['법인세','소득세','종합소득','양도세','원천징수','세무','세금','절세','세액공제','경비'], laws:['법인세법','소득세법','국세기본법','조세특례제한법'], t:['세액','공제','과세표준','원천징수']},
+ {n:'상속·증여·가업승계', k:['상속','증여','가업승계','유언'], laws:['상속세 및 증여세법','민법','조세특례제한법'], t:['상속','증여','가업상속공제']},
+ {n:'수출입·무역', k:['수출','수입','무역','통관','수출입','무역업','수출신고','수출 첫'], laws:['대외무역법','관세법','외국환거래법','무역보험법'], t:['수출','수입','무역','통관']},
+ {n:'관세·FTA·원산지', k:['관세','fta','에프티에이','원산지','특혜','품목분류','관세사','관세환급','환급'], laws:['관세법','자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','대외무역법'], t:['원산지','관세','자유무역협정','원산지증명서','환급']},
+ {n:'외환·해외송금', k:['외환','환율','해외송금','외국환','외화','해외직접투자','송금'], laws:['외국환거래법','외국인투자 촉진법'], t:['외국환','신고','해외직접투자','송금']},
+ {n:'해외진출·외국인투자', k:['해외진출','해외지사','해외법인','외국인투자','현지법인','수출바우처','해외시장','해외 진출'], laws:['외국환거래법','외국인투자 촉진법','대외무역법','중소기업진흥에 관한 법률'], t:['해외직접투자','외국인투자','신고']},
+ {n:'공공조달·입찰', k:['조달','입찰','공공계약','나라장터','낙찰','적격심사','계약보증','수의계약','공공기관 계약'], laws:['국가를 당사자로 하는 계약에 관한 법률','조달사업에 관한 법률','지방자치단체를 당사자로 하는 계약에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['입찰','계약','낙찰','적격심사','수의계약','참가자격']},
+ {n:'하도급·납품대금', k:['하도급','수급사업자','원사업자','납품단가','납품대금','대금 지급','기술탈취','연동제','대금'], laws:['하도급거래 공정화에 관한 법률','대ㆍ중소기업 상생협력 촉진에 관한 법률'], t:['하도급대금','60일','납품','부당']},
+ {n:'공정거래·불공정', k:['공정거래','독점','담합','불공정','시장지배','끼워팔기','우월적'], laws:['독점규제 및 공정거래에 관한 법률'], t:['불공정거래행위','담합','부당한']},
+ {n:'가맹사업', k:['가맹','프랜차이즈','가맹점','가맹본부'], laws:['가맹사업거래의 공정화에 관한 법률'], t:['가맹','정보공개서','가맹금','계약갱신요구']},
+ {n:'특허·상표·영업비밀', k:['특허','상표','디자인권','실용신안','지식재산','지재권','출원','영업비밀','기술유출','침해'], laws:['특허법','상표법','디자인보호법','부정경쟁방지 및 영업비밀보호에 관한 법률'], t:['특허','상표','출원','침해','영업비밀']},
+ {n:'저작권', k:['저작권','저작물','저작자','무단복제','이미지 도용','표절','도용'], laws:['저작권법'], t:['저작권','저작물','복제','이용허락']},
+ {n:'창업·사업자등록', k:['창업','사업자등록','법인설립','개업','사업 시작','사업자'], laws:['중소기업창업 지원법','부가가치세법','상법'], t:['창업','사업자등록','법인','설립']},
+ {n:'중소기업·소상공인 지원', k:['중소기업','소기업','소상공인','지원사업','정책자금','중소기업 확인','판로','경영안정','경영혁신','경영지도'], laws:['중소기업기본법','중소기업진흥에 관한 법률','소상공인 보호 및 지원에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['중소기업','소상공인','지원','정책자금','확인']},
+ {n:'벤처·투자', k:['벤처','투자','스타트업','엔젤','투자유치','스톡옵션','지분'], laws:['벤처투자 촉진에 관한 법률','벤처기업육성에 관한 특별조치법','상법'], t:['벤처','투자','주식매수선택권']},
+ {n:'회사·주주·이사', k:['주주','이사','대표이사','주주총회','정관','유한회사','주식회사','배당','합병','자본금'], laws:['상법'], t:['주주총회','이사','정관','배당']},
+ {n:'폐업·회생·파산', k:['폐업','부도','회생','파산','채무','빚','개인회생','도산','경영위기'], laws:['채무자 회생 및 파산에 관한 법률','소상공인 보호 및 지원에 관한 법률'], t:['회생','파산','폐업','채무']},
+ {n:'계약·손해배상·채권', k:['계약서','계약','손해배상','위약금','계약해제','해지','채권','연체','이자','계약금','내용증명','소멸시효','시효','독촉'], laws:['민법','상법'], t:['손해배상','해제','위약금','소멸시효','이자']},
+ {n:'소비자·환불·전자상거래', k:['환불','소비자','청약철회','반품','교환','전자상거래','통신판매','쇼핑몰','약관'], laws:['전자상거래 등에서의 소비자보호에 관한 법률','소비자기본법','약관의 규제에 관한 법률'], t:['청약철회','7일','환불','통신판매업','약관']},
+ {n:'표시·광고', k:['광고','표시','허위과장','표시광고','원산지표시','라벨'], laws:['표시ㆍ광고의 공정화에 관한 법률','식품 등의 표시ㆍ광고에 관한 법률'], t:['표시','광고','거짓','과장']},
+ {n:'식품·영업신고', k:['식품','음식점','영업신고','위생','haccp','영업허가','식당','카페','식품제조'], laws:['식품위생법','식품안전기본법'], t:['영업신고','위생','식품','허가']},
+ {n:'공장·건축·입지', k:['공장','건축','용도변경','인허가','공장등록','산업단지','토지','건축물','준공','공장설립'], laws:['산업집적활성화 및 공장설립에 관한 법률','건축법','국토의 계획 및 이용에 관한 법률'], t:['공장등록','용도','건축','허가']},
+ {n:'환경·폐기물', k:['환경','폐기물','배출','대기','오염','화학물질','탄소','온실가스'], laws:['폐기물관리법','대기환경보전법','화학물질관리법','물환경보전법'], t:['폐기물','배출','신고','허가']},
+ {n:'대출·보증·금융', k:['대출','신용보증','금리','융자','보증서','담보','저당','자금'], laws:['신용보증기금법','기술보증기금법','은행법','중소기업진흥에 관한 법률'], t:['신용보증','대출','담보','보증']},
+ {n:'형사·명예훼손', k:['명예훼손','모욕','사기','횡령','배임','고소','고발','형사','처벌','벌금','징역','폭행','협박','절도'], laws:['형법','형사소송법'], t:['명예훼손','사기','횡령','배임','벌금']},
+ {n:'정보통신·전자문서·AI', k:['앱','소프트웨어','전자서명','전자문서','클라우드','인공지능','정보보호','해킹','전자금융','본인인증'], laws:['정보통신망 이용촉진 및 정보보호 등에 관한 법률','전자서명법','전자문서 및 전자거래 기본법','인공지능 발전과 신뢰 기반 조성 등에 관한 기본법'], t:['정보보호','전자서명','전자문서','인공지능']},
+ {n:'행정처분·과태료', k:['행정심판','행정소송','과태료','과징금','시정명령','영업정지','민원','행정처분','이의신청'], laws:['행정심판법','행정소송법','질서위반행위규제법','행정절차법'], t:['과태료','이의제기','행정심판','처분']},
+ {n:'연구개발·기술혁신', k:['연구개발','r&d','기술개발','기술혁신','이노비즈','기술보호','연구과제'], laws:['중소기업 기술혁신 촉진법','기술의 이전 및 사업화 촉진에 관한 법률','과학기술기본법'], t:['기술혁신','연구개발','사업화']},
+ {n:'협동조합·사회적기업', k:['협동조합','사회적기업','마을기업'], laws:['협동조합 기본법','사회적기업 육성법'], t:['협동조합','인증','설립']}
+];
+
+const EXAMPLES = [
+  '직원이 퇴직금을 안 주면 어떻게 되나요?',
+  '수출 처음 하는데 필요한 신고나 절차',
+  '상가 월세 올릴 수 있는 한도',
+  '하도급 대금을 늦게 주면 어떻게 되나요',
+  'FTA 원산지증명서 발급',
+  '개인정보가 유출됐을 때 해야 할 일',
+  '공공기관 입찰 참가자격 제한',
+  '육아휴직 급여 기간'
+];
+
+/* ---------- 질문 이해 ---------- */
+const STOP = new Set(['어떻게','어떤','무엇','뭐','경우','관련','알려줘','알려주세요','찾아줘','찾아주세요','있나요','되나요','할까요','궁금','질문','법령','법률','조항','규정','내용','하는','해야','한다','합니다','어디','언제','얼마','대해','대한','대하여','입니다','필요한','필요','방법']);
+const SUFFIX = /(으로서|으로써|에서는|에게서|이라고|이라는|입니다|인가요|되나요|하나요|할까요|하면|하는|해야|에서|에게|으로|이나|이란|에는|에도|은|는|이|가|을|를|에|의|도|로|과|와|랑)$/;
+
+function tokenize(q){
+  return q.replace(/[^가-힣A-Za-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).map(t => {
+    const m = t.match(SUFFIX);
+    return (m && t.length - m[0].length >= 2) ? t.slice(0, -m[0].length) : t;
+  }).filter(t => t.length >= 2 && !STOP.has(t));
+}
+
+function matchTopics(q){
+  const nq = norm(q).toLowerCase();
+  const toks = tokenize(q).map(t => t.toLowerCase());
+  const res = [];
+  for (const tp of TOPICS){
+    let score = 0; const hit = [];
+    for (const k of tp.k){
+      const nk = norm(k).toLowerCase();
+      if (nq.includes(nk)){ score += 3 + Math.min(nk.length, 6) / 3; hit.push(k); }
+      else if (toks.some(t => (t.length >= 3 && nk.includes(t)) || (nk.length >= 2 && t.includes(nk)))){ score += 1.5; hit.push(k); }
+    }
+    if (score > 0) res.push({tp, score, hit});
+  }
+  return res.sort((a, b) => b.score - a.score).slice(0, 3);
+}
+
+/* ---------- API ---------- */
+const cache = new Map();
+async function api(path, params){
+  const base = cfg.proxy ? cfg.proxy.replace(/\/+$/, '') : 'https://www.law.go.kr';
+  const url = base + path + '?' + new URLSearchParams({OC: cfg.oc, type: 'JSON', ...params});
+  if (cache.has(url)) return cache.get(url);
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const res = await fetch(url, {signal: ctl.signal});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const txt = await res.text();
+    let json;
+    try { json = JSON.parse(txt); }
+    catch (e) { const err = new Error('JSON 형식이 아닌 응답입니다. 인증키(OC)나 등록 도메인을 확인하세요.'); err.kind = 'format'; throw err; }
+    cache.set(url, json);
+    return json;
+  } finally { clearTimeout(timer); }
+}
+
+async function searchLaws(query, mode){ // mode 1 = 법령명, 2 = 본문
+  const j = await api('/DRF/lawSearch.do', {target: 'law', query, search: String(mode), display: '20'});
+  return toArray(j?.LawSearch?.law);
+}
+
+async function resolveLaw(name){
+  const list = await searchLaws(name, 1);
+  return list.find(l => norm(l.법령명한글) === norm(name)) || null;
+}
+
+/* ---------- 검색 실행 ---------- */
+const KIND_ORDER = {'법률':0,'대통령령':1,'총리령':2};
+let currentTerms = new Map();
+
+async function runSearch(raw){
+  const q = raw.trim();
+  if (!q) return;
+  history.replaceState(null, '', '?q=' + encodeURIComponent(q));
+  const out = $('out');
+  out.innerHTML = '<div class="state">관련 법령을 찾는 중입니다…</div>';
+
+  const topics = matchTopics(q);
+  const strong = topics.filter(x => x.score >= 3);
+  const toks = tokenize(q);
+
+  // 주제가 잡히면 그 핵심어만, 못 잡히면 입력한 단어를 그대로 사용 (군더더기 단어가 검색을 흐리지 않게)
+  const hits = [...new Set(strong.flatMap(x => x.hit))].sort((a, b) => b.length - a.length);
+  currentTerms = new Map();
+  // 질문에 적은 구체적인 명사(예: 선금, 지급한도)는 주제 핵심어보다 우선해서 찾는다
+  const VERBISH = /(면|는데|는|ㄹ|을|릴|게|지|까|요|다|서|고|며|나|데)$/;
+  const specific = toks.filter(t => !VERBISH.test(t) &&
+    !hits.some(h => norm(h).toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(norm(h).toLowerCase())) &&
+    !strong.some(x => x.tp.t.some(k => k.includes(t) || t.includes(k))));
+  if (strong.length){
+    hits.forEach(t => currentTerms.set(t, 2));
+    strong.forEach(x => x.tp.t.forEach(t => currentTerms.set(t, 3)));
+    specific.forEach(t => currentTerms.set(t, 4));
+  } else {
+    toks.forEach(t => currentTerms.set(t, 2));
+  }
+  const nameTerms = (strong.length ? hits : toks).slice(0, 2);
+
+  const jobs = [];
+  const names = [...new Set(strong.flatMap(x => x.tp.laws))].slice(0, 8);
+  names.forEach((n, i) => jobs.push(
+    resolveLaw(n).then(l => l ? [{...l, _src:'topic', _rank:100 - i, _why: strong.find(x => x.tp.laws.includes(n))?.tp.n}] : [])
+  ));
+  nameTerms.forEach(t => jobs.push(
+    searchLaws(t, 1).then(a => a.map((l, i) => ({...l, _src:'name', _rank:60 - i * 0.1})))
+  ));
+  const bodyTerms = [...new Set([specific[0], strong[0]?.tp.t[0], nameTerms[0]].filter(Boolean))].slice(0, 2);
+  bodyTerms.forEach(t => jobs.push(
+    searchLaws(t, 2).then(a => a.slice(0, 10).map((l, i) => ({...l, _src:'body', _rank:20 - i * 0.1})))
+  ));
+
+  const settled = await Promise.allSettled(jobs);
+  const ok = settled.filter(s => s.status === 'fulfilled');
+  if (!ok.length){ showError(settled[0]?.reason); return; }
+
+  const byId = new Map();
+  ok.flatMap(s => s.value).forEach(l => {
+    const prev = byId.get(l.법령ID);
+    if (!prev || l._rank > prev._rank) byId.set(l.법령ID, l);
+  });
+  const results = [...byId.values()].sort((a, b) =>
+    (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9))
+  ).slice(0, 15);
+
+  renderResults(q, strong, toks, results);
+}
+
+function showError(err){
+  const msg = err?.message || '';
+  const blocked = err instanceof TypeError || /Failed to fetch|NetworkError|Load failed|aborted/i.test(msg);
+  $('out').innerHTML = blocked
+    ? `<div class="err"><b>법제처 서버에 연결하지 못했습니다.</b><br>
+       브라우저가 법제처 서버를 직접 호출하는 것을 막았을 가능성이 큽니다(CORS 제한).<br>
+       <b>해결:</b> 같이 드린 <code>worker.js</code>를 Cloudflare Workers에 올린 뒤, 위쪽 <code>⚙ 설정</code>의 중계 서버 주소에 입력하면 됩니다.</div>`
+    : `<div class="err"><b>검색 중 문제가 생겼습니다.</b><br>${esc(msg || '알 수 없는 오류')}<br>
+       인증키(OC)가 <code>${esc(cfg.oc)}</code>로 맞는지, 신청 때 등록한 도메인에서 열었는지 확인해 주세요.</div>`;
+}
+
+function fmtDate(s){ return s && s.length === 8 ? `${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}` : (s || ''); }
+function lawUrl(name){ return 'https://www.law.go.kr/법령/' + encodeURIComponent(name.replace(/\s+/g, '')); }
+
+function renderResults(q, strong, toks, results){
+  const out = $('out');
+  let html = '';
+  if (strong.length){
+    html += `<div class="understood"><b>이렇게 이해했습니다.</b> ` +
+      strong.map(x => `<span class="tag">${esc(x.tp.n)}</span>`).join('') +
+      `<br><span style="color:var(--sub)">찾는 핵심어: ${[...currentTerms.keys()].slice(0, 10).map(esc).join(', ')}</span></div>`;
+  } else if (toks.length){
+    html += `<div class="understood"><b>입력하신 말을 그대로 검색했습니다.</b> 상황을 조금 더 구체적으로 적으면 더 잘 찾습니다. <br><span style="color:var(--sub)">검색어: ${toks.map(esc).join(', ')}</span></div>`;
+  }
+  if (!results.length){
+    out.innerHTML = html + '<div class="state">검색 결과가 없습니다. 다른 표현으로 다시 적어 보세요.</div>';
+    return;
+  }
+  html += results.map((l, i) => {
+    const why = l._src === 'topic' ? `<span class="badge rec">추천 · ${esc(l._why || '')}</span>`
+              : l._src === 'name' ? '<span class="badge">법령명 일치</span>'
+              : '<span class="badge">조문 내용 일치</span>';
+    return `<div class="card">
+      <h3>${esc(l.법령명한글)}</h3>
+      <div class="meta">${why}<span>${esc(l.법령구분명 || '')}</span><span>·</span><span>${esc(l.소관부처명 || '')}</span><span>·</span><span>시행 ${fmtDate(l.시행일자)}</span>${l.법령약칭명 ? `<span>· 약칭 ${esc(l.법령약칭명)}</span>` : ''}</div>
+      <div class="actions">
+        <button class="btn pri" data-i="${i}" type="button">관련 조문 보기</button>
+        <a class="btn" href="${lawUrl(l.법령명한글)}" target="_blank" rel="noopener">국가법령정보센터 원문</a>
+      </div>
+    </div>`;
+  }).join('');
+  out.innerHTML = html;
+  out.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => openLaw(results[+b.dataset.i])));
+}
+
+/* ---------- 조문 보기 ---------- */
+function parseArticle(a){
+  const lines = [];
+  if (a.조문내용) lines.push({t: flat(a.조문내용).trim(), l: 0});
+  toArray(a.항).forEach(h => {
+    if (typeof h === 'string'){ lines.push({t: h, l: 1}); return; }
+    if (h.항내용) lines.push({t: flat(h.항내용).trim(), l: 1});
+    toArray(h.호).forEach(ho => {
+      if (ho.호내용) lines.push({t: flat(ho.호내용).trim(), l: 2});
+      toArray(ho.목).forEach(m => { if (m.목내용) lines.push({t: flat(m.목내용).trim(), l: 3}); });
+    });
+  });
+  const head = (lines[0]?.t.match(/^제\s?\d+조(?:의\s?\d+)?(?:\s?\([^)]*\))?/) || [''])[0];
+  const no = (head.match(/^제\s?\d+조(?:의\s?\d+)?/) || [''])[0].replace(/\s/g, '');
+  return {
+    lines, head, no,
+    isHeading: a.조문여부 === '전문',
+    title: a.조문제목 || '',
+    text: lines.map(x => x.t).join(' ')
+  };
+}
+
+function scoreArticle(art, terms){
+  if (art.isHeading) return 0;
+  let s = 0;
+  for (const [t, w] of terms){
+    const cnt = art.text.split(t).length - 1;
+    if (cnt) s += w * Math.min(cnt, 3);
+    if (art.title && art.title.includes(t)) s += 5;
+  }
+  return s;
+}
+
+function highlighter(terms){
+  const list = [...terms].filter(t => t.length >= 1).sort((a, b) => b.length - a.length)
+    .map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!list.length) return s => esc(s);
+  const re = new RegExp('(' + list.join('|') + ')', 'g');
+  return s => esc(s).replace(re, '<mark>$1</mark>');
+}
+
+function artHtml(art, law, hl, withScore){
+  const link = art.no ? `https://www.law.go.kr/법령/${encodeURIComponent(law.name.replace(/\s+/g, ''))}/${encodeURIComponent(art.no)}` : '';
+  return `<div class="art">
+    <div class="ah"><b>${esc(art.head || '조문')}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">원문 ↗</a>` : ''}</div>
+    ${art.lines.map((x, i) => {
+      if (i === 0 && art.head) { const rest = x.t.slice(art.head.length).trim(); return rest ? `<div class="ln l1">${hl(rest)}</div>` : ''; }
+      return `<div class="ln l${Math.max(x.l,1)}">${hl(x.t)}</div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function openLaw(l){
+  const dlg = $('viewer');
+  $('vt').textContent = l.법령명한글;
+  $('vm').innerHTML = `<span>${esc(l.법령구분명 || '')}</span><span>·</span><span>${esc(l.소관부처명 || '')}</span><span>·</span><span>시행 ${fmtDate(l.시행일자)}</span>
+    <a class="btn" style="padding:3px 10px;font-size:12.5px" href="${lawUrl(l.법령명한글)}" target="_blank" rel="noopener">원문 ↗</a>`;
+  $('vb').innerHTML = '<div class="state">조문을 불러오는 중입니다…</div>';
+  if (!dlg.open) dlg.showModal();
+
+  let data;
+  try { data = await api('/DRF/lawService.do', {target: 'law', MST: l.법령일련번호}); }
+  catch (e) { $('vb').innerHTML = `<div class="err">조문을 불러오지 못했습니다. ${esc(e.message || '')}</div>`; return; }
+
+  const law = {name: l.법령명한글};
+  const arts = toArray(data?.법령?.조문?.조문단위).map(parseArticle).filter(a => a.lines.length);
+  if (!arts.length){ $('vb').innerHTML = '<div class="state">이 법령은 조문 형식으로 제공되지 않습니다. 위의 원문 링크를 이용하세요.</div>'; return; }
+
+  const hl = highlighter(currentTerms.keys());
+  const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)})).filter(x => x.s > 0).sort((x, y) => y.s - x.s).slice(0, 6);
+
+  let html = '';
+  if (ranked.length){
+    html += `<div class="sec">질문과 관련 깊은 조문 <span class="score">(핵심어 일치 순)</span></div>` + ranked.map(x => artHtml(x.a, law, hl)).join('');
+  } else if (currentTerms.size){
+    html += `<div class="state">입력하신 핵심어와 직접 일치하는 조문을 찾지 못했습니다. 아래 전체 조문에서 찾아 보세요.</div>`;
+  }
+  html += `<details id="all"><summary>전체 조문 보기 (${arts.length}개)</summary>
+    <input class="filter" id="flt" placeholder="이 법령 안에서 단어로 찾기">
+    <div id="alist"></div></details>`;
+  $('vb').innerHTML = html;
+
+  const alist = $('alist');
+  const paint = () => {
+    const f = $('flt').value.trim();
+    const h2 = f ? highlighter([...currentTerms.keys(), f]) : hl;
+    const shown = (f ? arts.filter(a => a.text.includes(f)) : arts).slice(0, 300);
+    alist.innerHTML = shown.map(a => a.isHeading
+      ? `<div class="heading">${esc(a.lines[0].t)}</div>` : artHtml(a, law, h2)).join('') || '<div class="state">일치하는 조문이 없습니다.</div>';
+  };
+  $('all').addEventListener('toggle', () => { if ($('all').open && !alist.innerHTML) paint(); });
+  $('flt').addEventListener('input', paint);
+  $('vb').scrollTop = 0;
+}
+
+/* ---------- 초기화 ---------- */
+$('chips').innerHTML = EXAMPLES.map(e => `<button class="chip" type="button">${esc(e)}</button>`).join('');
+$('chips').addEventListener('click', e => { if (e.target.classList.contains('chip')){ $('q').value = e.target.textContent; runSearch(e.target.textContent); } });
+$('form').addEventListener('submit', e => { e.preventDefault(); runSearch($('q').value); });
+$('vclose').addEventListener('click', () => $('viewer').close());
+$('viewer').addEventListener('click', e => { if (e.target === $('viewer')) $('viewer').close(); });
+$('gear').addEventListener('click', () => { $('oc').value = cfg.oc; $('proxy').value = cfg.proxy; $('settings').classList.toggle('open'); });
+$('save').addEventListener('click', () => {
+  cfg.oc = $('oc').value.trim() || DEFAULT_OC;
+  cfg.proxy = $('proxy').value.trim();
+  try { localStorage.setItem('lawsearch.cfg', JSON.stringify(cfg)); } catch (e) {}
+  cache.clear();
+  $('settings').classList.remove('open');
+});
+const initQ = new URLSearchParams(location.search).get('q');
+if (initQ){ $('q').value = initQ; runSearch(initQ); }
+</script>
+</body>
+</html>
