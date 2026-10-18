@@ -363,11 +363,14 @@ async function runSearch(raw){
   });
   const needAll = toks.length >= 2 ? toks.map(t => norm(t)) : [];
   const allIn = l => needAll.length > 0 && needAll.every(t => norm(l.법령명한글).includes(t));
-  const sorted = [...byId.values()].map(l => ({...l, _rank: l._rank + (allIn(l) ? 30 : 0)})).sort((a, b) =>
+  const qn = norm(q).replace(/\s+/g, '');
+  const sorted = [...byId.values()].map(l => ({...l, _exact: qn.length >= 3 && norm(l.법령명한글).replace(/\s+/g, '') === qn, _rank: l._rank + (allIn(l) ? 30 : 0)})).map(l => ({...l, _rank: l._rank + (l._exact ? 100 : 0)})).sort((a, b) =>
     (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9))
   );
   const LIMIT = {law: 15, admrul: 8, ordin: 8};
-  const results = KIND_LIST.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
+  const exactKind = sorted.find(l => l._exact)?._kind;
+  const order = exactKind ? [exactKind, ...KIND_LIST.filter(k => k !== exactKind)] : KIND_LIST;
+  const results = order.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
 
   renderResults(q, strong, toks, results);
 }
@@ -418,6 +421,8 @@ function renderResults(q, strong, toks, results){
     html += `<div class="understood"><b>따옴표 안의 말이 그대로 들어간 법령만 찾았습니다.</b> ` +
       currentExact.map(p => `<span class="tag">${esc(p)}</span>`).join('') +
       `<br><span style="color:var(--sub)">법령명이나 조문에 이 말이 있는 법령입니다. 조문을 열면 해당 부분을 표시합니다.</span></div>`;
+  } else if (results.some(l => l._exact)){
+    html += `<div class="understood"><b>이름이 정확히 일치하는 항목을 맨 위에 두었습니다.</b></div>`;
   } else if (strong.length){
     html += `<div class="understood"><b>이렇게 이해했습니다.</b> ` +
       strong.map(x => `<span class="tag">${esc(x.tp.n)}</span>`).join('') +
@@ -430,7 +435,8 @@ function renderResults(q, strong, toks, results){
     return;
   }
   const cardHtml = (l, i) => {
-    const why = l._src === 'topic' ? `<span class="badge rec">추천 · ${esc(l._why || '')}</span>`
+    const why = l._exact ? '<span class="badge rec">이름 정확히 일치</span>'
+              : l._src === 'topic' ? `<span class="badge rec">추천 · ${esc(l._why || '')}</span>`
               : l._src === 'name' ? `<span class="badge">${l._kind === 'law' ? '법령명' : '이름'} 일치</span>`
               : '<span class="badge">조문 내용 일치</span>';
     return `<div class="card">
@@ -442,7 +448,8 @@ function renderResults(q, strong, toks, results){
       </div>
     </div>`;
   };
-  KIND_LIST.forEach(k => {
+  const kindsShown = [...new Set(results.map(l => l._kind))];
+  kindsShown.forEach(k => {
     const items = results.map((l, i) => [l, i]).filter(([l]) => l._kind === k);
     if (!items.length) return;
     html += `<div class="sec">${KINDS[k].label} <span class="score">${KINDS[k].sub} · ${items.length}건</span></div>` +
