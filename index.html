@@ -103,6 +103,7 @@ details>summary{cursor:pointer;font-weight:700;padding:8px 0}
       <li><b>법령명 일부 적기</b> — 예) <code>국가를 당사자로 하는</code> 법령명에 이 말이 들어간 법령이 위쪽에 나옵니다.</li>
       <li><b>따옴표로 정확히 찾기</b> — 예) <code>'국가를 당사자로'</code> 따옴표 안의 말이 <b>그대로 들어간</b> 법령과 조문만 찾습니다. 따옴표를 여러 개 쓰면 <b>모두 들어간</b> 것만 찾습니다. 예) <code>'선금' '지급한도'</code></li>
       <li>따옴표는 <code>' '</code> 와 <code>" "</code> 모두 쓸 수 있습니다. 법령을 연 뒤에는 "전체 조문 보기"에서 그 법령 안의 단어도 찾을 수 있습니다.</li>
+      <li><b>검색 범위</b> — 결과는 <b>법령</b>(법률·시행령·시행규칙), <b>행정규칙</b>(고시·훈령·예규), <b>자치법규</b>(조례·규칙) 구역으로 나뉘어 나옵니다.</li>
     </ul>
   </details>
   <div class="chips" id="chips"></div>
@@ -251,10 +252,30 @@ async function api(path, params){
   } finally { clearTimeout(timer); }
 }
 
-async function searchLaws(query, mode, display = '20'){ // mode 1 = 법령명, 2 = 본문
-  const j = await api('/DRF/lawSearch.do', {target: 'law', query, search: String(mode), display});
-  return toArray(j?.LawSearch?.law);
+const KINDS = {
+  law:    {label:'법령',     sub:'법률·시행령·시행규칙', target:'law',    path:'법령'},
+  admrul: {label:'행정규칙', sub:'고시·훈령·예규',       target:'admrul', path:'행정규칙'},
+  ordin:  {label:'자치법규', sub:'조례·규칙',            target:'ordin',  path:'자치법규'}
+};
+const KIND_LIST = ['law', 'admrul', 'ordin'];
+
+// 행정규칙·자치법규의 응답을 법령과 같은 모양으로 맞춘다
+function normItem(kind, x){
+  if (kind === 'admrul') return {_kind:kind, 법령ID:'A' + x.행정규칙ID, 법령명한글:x.행정규칙명, 법령일련번호:x.행정규칙일련번호,
+    법령구분명:x.행정규칙종류, 소관부처명:x.소관부처명, 시행일자:x.시행일자 || x.발령일자, 법령약칭명:''};
+  if (kind === 'ordin') return {_kind:kind, 법령ID:'O' + x.자치법규ID, 법령명한글:x.자치법규명, 법령일련번호:x.자치법규일련번호,
+    법령구분명:x.자치법규종류, 소관부처명:x.지자체기관명, 시행일자:x.시행일자, 법령약칭명:''};
+  return {...x, _kind:'law'};
 }
+
+async function searchKind(kind, query, mode, display = '20'){ // mode 1 = 이름, 2 = 본문
+  const j = await api('/DRF/lawSearch.do', {target: KINDS[kind].target, query, search: String(mode), display});
+  const list = kind === 'admrul' ? toArray(j?.AdmRulSearch?.admrul)
+             : kind === 'ordin'  ? toArray(j?.OrdinSearch?.law)
+             : toArray(j?.LawSearch?.law);
+  return list.map(x => normItem(kind, x));
+}
+const searchLaws = (query, mode, display = '20') => searchKind('law', query, mode, display);
 
 async function resolveLaw(name){
   const list = await searchLaws(name, 1);
@@ -310,13 +331,26 @@ async function runSearch(raw){
   ));
   // 법령명의 일부를 그대로 적은 경우를 위해 입력한 문장 전체도 법령명으로 검색한다
   const phrase = q.replace(/[?!.,~]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (phrase.length >= 3 && phrase.length <= 40 && phrase !== nameTerms[0]){
+  const usePhrase = phrase.length >= 3 && phrase.length <= 40 && phrase !== nameTerms[0];
+  if (usePhrase){
     jobs.push(searchLaws(phrase, 1).then(a => a.map((l, i) => ({...l, _src:'name', _rank:90 - i * 0.1}))));
   }
   const bodyTerms = [...new Set([specific[0], strong[0]?.tp.t[0], nameTerms[0]].filter(Boolean))].slice(0, 2);
   bodyTerms.forEach(t => jobs.push(
     searchLaws(t, 2).then(a => a.slice(0, 10).map((l, i) => ({...l, _src:'body', _rank:20 - i * 0.1})))
   ));
+  // 행정규칙(고시·훈령·예규)과 자치법규(조례·규칙)도 함께 찾는다
+  ['admrul', 'ordin'].forEach(kind => {
+    nameTerms.forEach(t => jobs.push(
+      searchKind(kind, t, 1, '10').then(a => a.map((l, i) => ({...l, _src:'name', _rank:60 - i * 0.1})))
+    ));
+    if (usePhrase) jobs.push(
+      searchKind(kind, phrase, 1, '10').then(a => a.map((l, i) => ({...l, _src:'name', _rank:90 - i * 0.1})))
+    );
+  });
+  if (bodyTerms[0]) jobs.push(
+    searchKind('admrul', bodyTerms[0], 2, '10').then(a => a.map((l, i) => ({...l, _src:'body', _rank:20 - i * 0.1})))
+  );
 
   const settled = await Promise.allSettled(jobs);
   const ok = settled.filter(s => s.status === 'fulfilled');
@@ -329,29 +363,37 @@ async function runSearch(raw){
   });
   const needAll = toks.length >= 2 ? toks.map(t => norm(t)) : [];
   const allIn = l => needAll.length > 0 && needAll.every(t => norm(l.법령명한글).includes(t));
-  const results = [...byId.values()].map(l => ({...l, _rank: l._rank + (allIn(l) ? 30 : 0)})).sort((a, b) =>
+  const sorted = [...byId.values()].map(l => ({...l, _rank: l._rank + (allIn(l) ? 30 : 0)})).sort((a, b) =>
     (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9))
-  ).slice(0, 15);
+  );
+  const LIMIT = {law: 15, admrul: 8, ordin: 8};
+  const results = KIND_LIST.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
 
   renderResults(q, strong, toks, results);
 }
 
 async function runExact(phrases){
   currentTerms = new Map(phrases.map(p => [p, 5]));
-  const settled = await Promise.allSettled(phrases.map(async p => ({
-    p, name: await searchLaws(p, 1, '100'), body: await searchLaws(p, 2, '100')
-  })));
+  const settled = await Promise.allSettled(KIND_LIST.flatMap(k => phrases.map(async p => ({
+    k, p, name: await searchKind(k, p, 1, '100'), body: await searchKind(k, p, 2, '100')
+  }))));
   const rows = settled.filter(r => r.status === 'fulfilled').map(r => r.value);
   if (!rows.length){ showError(settled[0]?.reason); return; }
 
-  const all = new Map();
-  rows.forEach(r => [...r.name, ...r.body].forEach(l => all.set(l.법령ID, l)));
   const inName = (l, p) => norm(l.법령명한글).includes(norm(p));
-  const results = [...all.values()]
-    .filter(l => rows.every(r => inName(l, r.p) || r.body.some(b => b.법령ID === l.법령ID)))
-    .map(l => { const n = rows.every(r => inName(l, r.p)); return {...l, _src: n ? 'name' : 'body', _rank: n ? 130 : 50}; })
-    .sort((a, b) => (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9)))
-    .slice(0, 20);
+  const cmp = (a, b) => (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9));
+  const LIMIT = {law: 20, admrul: 10, ordin: 10};
+  let results = [];
+  for (const k of KIND_LIST){
+    const rk = rows.filter(r => r.k === k);
+    if (rk.length < phrases.length) continue;   // 일부 검색이 실패한 구역은 부정확하므로 건너뛴다
+    const all = new Map();
+    rk.forEach(r => [...r.name, ...r.body].forEach(l => all.set(l.법령ID, l)));
+    results = results.concat([...all.values()]
+      .filter(l => rk.every(r => inName(l, r.p) || r.body.some(b => b.법령ID === l.법령ID)))
+      .map(l => { const n = rk.every(r => inName(l, r.p)); return {...l, _src: n ? 'name' : 'body', _rank: n ? 130 : 50}; })
+      .sort(cmp).slice(0, LIMIT[k]));
+  }
   renderResults(phrases.join(' '), [], [], results);
 }
 
@@ -367,7 +409,7 @@ function showError(err){
 }
 
 function fmtDate(s){ return s && s.length === 8 ? `${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}` : (s || ''); }
-function lawUrl(name){ return 'https://www.law.go.kr/법령/' + encodeURIComponent(name.replace(/\s+/g, '')); }
+function lawUrl(name, kind = 'law'){ return 'https://www.law.go.kr/' + KINDS[kind || 'law'].path + '/' + encodeURIComponent(name.replace(/\s+/g, '')); }
 
 function renderResults(q, strong, toks, results){
   const out = $('out');
@@ -387,19 +429,25 @@ function renderResults(q, strong, toks, results){
     out.innerHTML = html + '<div class="state">' + (currentExact.length ? '따옴표로 지정한 말이 모두 들어간 법령을 찾지 못했습니다. 띄어쓰기와 철자를 확인하거나, 따옴표를 빼고 검색해 보세요.' : '검색 결과가 없습니다. 다른 표현으로 다시 적어 보세요.') + '</div>';
     return;
   }
-  html += results.map((l, i) => {
+  const cardHtml = (l, i) => {
     const why = l._src === 'topic' ? `<span class="badge rec">추천 · ${esc(l._why || '')}</span>`
-              : l._src === 'name' ? '<span class="badge">법령명 일치</span>'
+              : l._src === 'name' ? `<span class="badge">${l._kind === 'law' ? '법령명' : '이름'} 일치</span>`
               : '<span class="badge">조문 내용 일치</span>';
     return `<div class="card">
       <h3>${esc(l.법령명한글)}</h3>
       <div class="meta">${why}<span>${esc(l.법령구분명 || '')}</span><span>·</span><span>${esc(l.소관부처명 || '')}</span><span>·</span><span>시행 ${fmtDate(l.시행일자)}</span>${l.법령약칭명 ? `<span>· 약칭 ${esc(l.법령약칭명)}</span>` : ''}</div>
       <div class="actions">
         <button class="btn pri" data-i="${i}" type="button">관련 조문 보기</button>
-        <a class="btn" href="${lawUrl(l.법령명한글)}" target="_blank" rel="noopener">국가법령정보센터 원문</a>
+        <a class="btn" href="${lawUrl(l.법령명한글, l._kind)}" target="_blank" rel="noopener">국가법령정보센터 원문</a>
       </div>
     </div>`;
-  }).join('');
+  };
+  KIND_LIST.forEach(k => {
+    const items = results.map((l, i) => [l, i]).filter(([l]) => l._kind === k);
+    if (!items.length) return;
+    html += `<div class="sec">${KINDS[k].label} <span class="score">${KINDS[k].sub} · ${items.length}건</span></div>` +
+      items.map(([l, i]) => cardHtml(l, i)).join('');
+  });
   out.innerHTML = html;
   out.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => openLaw(results[+b.dataset.i])));
 }
@@ -426,6 +474,44 @@ function parseArticle(a){
   };
 }
 
+/* 행정규칙·자치법규 변환 */
+function levelOf(t){
+  if (/^[①-⑳]/.test(t)) return 1;
+  if (/^\d+(의\d+)?\./.test(t)) return 2;
+  if (/^[가-하]\./.test(t)) return 3;
+  return 1;
+}
+function makeArt(text, title){
+  const lines = flat(text).split(/\r?\n/).map(x => x.trim()).filter(Boolean)
+    .map((t, i) => ({t, l: i === 0 ? 0 : levelOf(t)}));
+  const head = (lines[0]?.t.match(/^제\s?\d+조(?:의\s?\d+)?(?:\s?\([^)]*\))?/) || [''])[0];
+  const no = (head.match(/^제\s?\d+조(?:의\s?\d+)?/) || [''])[0].replace(/\s/g, '');
+  return {lines, head, no, title: title || '',
+    isHeading: !head && lines.length === 1 && /^제\s?\d+\s?(장|절|관|편)/.test(lines[0].t),
+    text: lines.map(x => x.t).join(' ')};
+}
+function parseAdmrul(svc){
+  const raw = flat(svc?.조문내용 ?? '').replace(/\r/g, '').trim();
+  if (!raw) return [];
+  // 조문이 한 덩어리로 오므로 '제N조(제목)'을 순서대로 찾아 나눈다 (다른 조문을 가리키는 인용은 번호 순서로 걸러냄)
+  const re = /제(\d+)조(?:의(\d+))?\([^)\n]{1,40}\)/g;
+  const marks = []; let lastN = 0, lastS = 0, m;
+  while ((m = re.exec(raw))){
+    const n = +m[1], sub = +(m[2] || 0);
+    const ok = marks.length === 0 ? n <= 10 : ((n > lastN && n <= lastN + 10) || (n === lastN && sub > lastS));
+    if (ok){ marks.push(m.index); lastN = n; lastS = sub; }
+  }
+  if (!marks.length) return [makeArt(raw, '본문')];
+  // 조문 끝에 붙은 다음 장·절 제목(예: '제2절 신고')은 떼어 낸다
+  const stripHead = t => t.replace(/\s*제\d+\s?(장|절|관|편)\s[^\n]{0,40}$/, '');
+  return marks.map((st, i) => makeArt(stripHead(raw.slice(st, marks[i + 1] ?? raw.length).trim()))).filter(a => a.lines.length);
+}
+function extractArticles(kind, data){
+  if (kind === 'admrul') return parseAdmrul(data?.AdmRulService);
+  if (kind === 'ordin') return toArray(data?.LawService?.조문?.조).map(a => makeArt(a.조내용, a.조제목)).filter(a => a.lines.length);
+  return toArray(data?.법령?.조문?.조문단위).map(parseArticle).filter(a => a.lines.length);
+}
+
 function scoreArticle(art, terms){
   if (art.isHeading) return 0;
   let s = 0;
@@ -446,7 +532,7 @@ function highlighter(terms){
 }
 
 function artHtml(art, law, hl, withScore){
-  const link = art.no ? `https://www.law.go.kr/법령/${encodeURIComponent(law.name.replace(/\s+/g, ''))}/${encodeURIComponent(art.no)}` : '';
+  const link = art.no ? `https://www.law.go.kr/${KINDS[law.kind || 'law'].path}/${encodeURIComponent(law.name.replace(/\s+/g, ''))}/${encodeURIComponent(art.no)}` : '';
   return `<div class="art">
     <div class="ah"><b>${esc(art.head || '조문')}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">원문 ↗</a>` : ''}</div>
     ${art.lines.map((x, i) => {
@@ -460,17 +546,24 @@ async function openLaw(l){
   const dlg = $('viewer');
   $('vt').textContent = l.법령명한글;
   $('vm').innerHTML = `<span>${esc(l.법령구분명 || '')}</span><span>·</span><span>${esc(l.소관부처명 || '')}</span><span>·</span><span>시행 ${fmtDate(l.시행일자)}</span>
-    <a class="btn" style="padding:3px 10px;font-size:12.5px" href="${lawUrl(l.법령명한글)}" target="_blank" rel="noopener">원문 ↗</a>`;
+    <a class="btn" style="padding:3px 10px;font-size:12.5px" href="${lawUrl(l.법령명한글, l._kind)}" target="_blank" rel="noopener">원문 ↗</a>`;
   $('vb').innerHTML = '<div class="state">조문을 불러오는 중입니다…</div>';
   if (!dlg.open) dlg.showModal();
 
   let data;
-  try { data = await api('/DRF/lawService.do', {target: 'law', MST: l.법령일련번호}); }
+  try { data = await api('/DRF/lawService.do', l._kind === 'admrul' ? {target: 'admrul', ID: l.법령일련번호} : {target: l._kind === 'ordin' ? 'ordin' : 'law', MST: l.법령일련번호}); }
   catch (e) { $('vb').innerHTML = `<div class="err">조문을 불러오지 못했습니다. ${esc(e.message || '')}</div>`; return; }
 
-  const law = {name: l.법령명한글};
-  const arts = toArray(data?.법령?.조문?.조문단위).map(parseArticle).filter(a => a.lines.length);
-  if (!arts.length){ $('vb').innerHTML = '<div class="state">이 법령은 조문 형식으로 제공되지 않습니다. 위의 원문 링크를 이용하세요.</div>'; return; }
+  const law = {name: l.법령명한글, kind: l._kind || 'law'};
+  const arts = extractArticles(law.kind, data);
+  const fixUrl = u => !u ? '' : /^https?:/.test(u) ? u.replace(/^http:/, 'https:') : 'https://www.law.go.kr' + u;
+  const att = law.kind === 'admrul' ? toArray(data?.AdmRulService?.별표?.별표단위) : [];
+  const attHtml = att.length
+    ? `<details><summary>별표·서식 (${att.length}개)</summary>` + att.map(b => {
+        const u = fixUrl(b.별표서식PDF파일링크 || b.별표서식파일링크);
+        return `<div class="ln l1">${esc(b.별표번호 ? '별표 ' + b.별표번호 + ' ' : '')}${esc(b.별표제목 || '')}${u ? ` — <a href="${u}" target="_blank" rel="noopener">파일 ↗</a>` : ''}</div>`;
+      }).join('') + '</details>' : '';
+  if (!arts.length){ $('vb').innerHTML = '<div class="state">이 규정은 조문 형식으로 제공되지 않습니다. 위의 원문 링크를 이용하세요.</div>'; return; }
 
   const hl = highlighter(currentTerms.keys());
   const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)})).filter(x => x.s > 0).sort((x, y) => y.s - x.s).slice(0, 6);
@@ -487,6 +580,7 @@ async function openLaw(l){
   } else if (currentTerms.size){
     html += `<div class="state">입력하신 핵심어와 직접 일치하는 조문을 찾지 못했습니다. 아래 전체 조문에서 찾아 보세요.</div>`;
   }
+  html += attHtml;
   html += `<details id="all"><summary>전체 조문 보기 (${arts.length}개)</summary>
     <input class="filter" id="flt" placeholder="이 법령 안에서 단어로 찾기">
     <div id="alist"></div></details>`;
