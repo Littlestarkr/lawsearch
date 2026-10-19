@@ -185,7 +185,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
 
 <script>
 /* ================= 설정 ================= */
-const DEFAULT_PROXY = '';   // 중계 서버를 배포하면 여기에 …/exec 주소를 넣는다
+const DEFAULT_PROXY = 'https://script.google.com/macros/s/AKfycbyxK8PJbI34BQRNdphE8N-K4AXw73c14WahVeaBSAoYep7Lo6dy9wIW1vkpaVtPiSlZIQ/exec';   // 중계 서버를 배포하면 여기에 …/exec 주소를 넣는다
 const cfg = { proxy: DEFAULT_PROXY };
 try { const s = JSON.parse(localStorage.getItem('trade.cfg') || '{}'); if (s.proxy) cfg.proxy = s.proxy; } catch (e) {}
 const $ = id => document.getElementById(id);
