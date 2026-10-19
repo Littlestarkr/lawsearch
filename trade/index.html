@@ -352,7 +352,7 @@ async function customsRank(hs, from, to, isoList){
   const chunks = []; for (let i = 0; i < isoList.length; i += 35) chunks.push(isoList.slice(i, i + 35));
   const res = await Promise.all(chunks.map(c => viaProxy('customs', {hs, from, to, cnty: c.join(',')})));
   res.forEach(r => Object.entries(r.results || {}).forEach(([iso, v]) => {
-    if (v.error || (v.code && v.code !== '00')) { if (!firstErr) firstErr = v.error || (v.msg || v.code); return; }
+    if (v.error || (v.code && v.code !== '00')) { if (!firstErr) firstErr = (v.error || (v.msg || v.code)) + (v.raw ? '\n서버 응답: ' + String(v.raw).replace(/\s+/g, ' ').slice(0, 250) : ''); return; }
     okCount++;
     const rows = v.rows || [];
     if (rows.length) emptyAll = false;
