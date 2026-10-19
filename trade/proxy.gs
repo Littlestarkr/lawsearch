@@ -36,7 +36,7 @@ function doGet(e) {
     else if (p.a === 'comtrade') out = comtrade_(p);
     else if (p.a === 'ref') out = ref_(p);
     else if (p.a === 'unipass') out = unipass_(p);
-    else if (p.a === 'ping') out = { ok: true, key: !!prop_('DATA_GO_KEY'), unipassKey: !!prop_('UNIPASS_KEY') };
+    else if (p.a === 'ping') out = { ok: true, key: !!prop_('DATA_GO_KEY'), unipass: Object.keys(UNIPASS_OPS).filter(function (k) { return !!(prop_(UNIPASS_OPS[k].prop) || prop_('UNIPASS_KEY')); }) };
     else out = { error: '알 수 없는 요청입니다.' };
   } catch (err) {
     out = { error: String(err && err.message || err) };
@@ -133,10 +133,10 @@ function ref_(p) {
 
 /* ---------- UNI-PASS ---------- */
 function unipass_(p) {
-  var key = prop_('UNIPASS_KEY');
-  if (!key) return { error: '스크립트 속성 UNIPASS_KEY(UNI-PASS 인증키)가 없습니다.' };
   var op = UNIPASS_OPS[p.op];
   if (!op) return { error: '허용되지 않은 UNI-PASS 서비스입니다.' };
+  var key = prop_(op.prop) || prop_('UNIPASS_KEY');   // UNI-PASS 인증키는 API별로 따로 발급된다
+  if (!key) return { error: '스크립트 속성 ' + op.prop + '(UNI-PASS 인증키)가 없습니다.' };
   var qs = 'crkyCn=' + encodeURIComponent(key);
   op.allow.forEach(function (k) {
     if (p[k] !== undefined && String(p[k]) !== '') qs += '&' + k + '=' + encodeURIComponent(String(p[k]).slice(0, 200));
