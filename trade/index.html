@@ -479,12 +479,14 @@ async function showDetail(code){
 /* ---------- UNI-PASS (HS 10자리·관세율·환율·관세사) ---------- */
 const uni = (op, params) => viaProxy('unipass', {op, ...params});
 const rateNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+// 관세청 정식 품명이 통용어와 다른 경우(검색어 → 정식 품명)
+const UNI_ALIAS = {'막걸리':'탁주', '맥주':'맥아', '소주':'증류주', '김':'조제한김'};
 async function runUni(q, digits, isCode){
   const box = $('hsUni');
   if (!cfg.proxy){ box.innerHTML = ''; return; }
   let params;
   if (isCode){ if (digits.length !== 10){ box.innerHTML = ''; return; } params = {hsSgn: digits, koenTp: 1}; }
-  else params = {prnm: q, koenTp: /[가-힣]/.test(q) ? 1 : 2};
+  else params = {prnm: UNI_ALIAS[q] || q, koenTp: /[가-힣]/.test(q) ? 1 : 2};
   box.innerHTML = '<div class="state">관세청 HS부호(10자리)를 찾는 중…</div>';
   try {
     const j = await uni('hs', params);
@@ -496,7 +498,7 @@ async function runUni(q, digits, isCode){
       by.set(r.hsSgn, h);
     });
     const list = [...by.values()].sort((a, b) => a.hs.localeCompare(b.hs));
-    if (!list.length){ box.innerHTML = `<div class="state">관세청 HS부호에서 "${esc(q)}"을(를) 찾지 못했습니다.${j.ntce ? ' (' + esc(j.ntce) + ')' : ''}</div>`; return; }
+    if (!list.length){ box.innerHTML = `<div class="state">관세청 HS부호에서 "${esc(q)}"을(를) 찾지 못했습니다.${j.ntce ? ' (' + esc(j.ntce) + ')' : ''}<br><span class="hint">관세청 품명은 통용어와 다를 수 있습니다(예: 막걸리 → 탁주). 더 일반적인 단어나 정식 명칭으로 다시 찾아 보세요.</span></div>`; return; }
     const shown = list.slice(0, 60);
     box.innerHTML = `<div class="card"><h3>관세청 HS부호 (10자리) <span class="tag ok">${list.length}건</span></h3><div class="hint" style="margin:0 0 8px">품명에 "${esc(q)}"이(가) 들어간 세번입니다.${list.length > shown.length ? ` 상위 ${shown.length}건만 표시합니다.` : ''}</div><div class="scroll"><table><thead><tr><th>세번</th><th>품명</th><th class="r">기본세율</th><th></th></tr></thead><tbody>` +
       shown.map(h => `<tr><td><b>${fmtHs(h.hs)}</b></td><td>${esc(h.name.length > 90 ? h.name.slice(0, 90) + '…' : h.name)}</td><td class="r">${h.basic != null ? h.basic + '%' : '-'}</td>` +
