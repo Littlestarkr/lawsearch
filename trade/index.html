@@ -117,13 +117,14 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
   <section class="panel" id="p-rank">
     <div class="card">
       <div class="row">
-        <div><label for="rkHs">HS코드</label><input id="rkHs" size="12" placeholder="예) 330499"></div>
+        <div><label for="rkHs">HS코드</label><input id="rkHs" size="14" placeholder="예) 330499 또는 3304991000"></div>
+        <div><label for="rkUnit">관세청 조회 단위</label><select id="rkUnit"><option value="6">6자리 (하위 품목 합산)</option><option value="10">10자리 (정확한 세번)</option></select></div>
         <div><label for="rkYear">UN Comtrade 연도</label><select id="rkYear"></select></div>
         <div><label for="rkFrom">관세청 기간(시작)</label><input id="rkFrom" type="month"></div>
         <div><label for="rkTo">관세청 기간(끝)</label><input id="rkTo" type="month"></div>
         <button class="btn" id="rkGo" type="button">순위 보기</button>
       </div>
-      <p class="hint">한국의 수출 상대국 순위입니다. 관세청 기간은 최대 12개월이며, 관세청은 HS 10자리까지 입력할수록 정확합니다.</p>
+      <p class="hint">한국의 수출 상대국 순위입니다. 관세청 기간은 최대 12개월이며, 6자리는 그 아래 10자리 품목을 합산하고 아래에 세부 품목 목록도 보여 줍니다. 10자리는 입력한 세번 하나만 조회합니다. (UN Comtrade는 항상 6자리 기준)</p>
     </div>
     <div id="rkOut"></div>
   </section>
@@ -346,7 +347,7 @@ function loadRef(){
 /* ===== 관세청 (중계 서버 필요) ===== */
 const ISO_LIST = COUNTRIES.map(c => c[0]);
 async function customsRank(hs, from, to, isoList){
-  const out = new Map(); let name = '', firstErr = '', okCount = 0, emptyAll = true;
+  const out = new Map(), byHs = new Map(); let name = '', firstErr = '', okCount = 0, emptyAll = true;
   const chunks = []; for (let i = 0; i < isoList.length; i += 35) chunks.push(isoList.slice(i, i + 35));
   const res = await Promise.all(chunks.map(c => viaProxy('customs', {hs, from, to, cnty: c.join(',')})));
   res.forEach(r => Object.entries(r.results || {}).forEach(([iso, v]) => {
@@ -357,9 +358,12 @@ async function customsRank(hs, from, to, isoList){
     let tot = 0, exp = 0, imp = 0;
     const totalRow = rows.find(x => /총|합계|total/i.test(String(x.year || '')));
     (totalRow ? [totalRow] : rows).forEach(x => { exp += num(x.expDlr); imp += num(x.impDlr); if (!name && x.statKor) name = x.statKor; });
+    rows.filter(x => x.hsCd && !/총|합계|total/i.test(String(x.year || ''))).forEach(x => {
+      const h = byHs.get(x.hsCd) || {name: x.statKor || '', exp: 0}; h.exp += num(x.expDlr); byHs.set(x.hsCd, h);
+    });
     out.set(iso, {exp, imp, rows});
   }));
-  return {map: out, name, firstErr, okCount, emptyAll};
+  return {map: out, byHs, name, firstErr, okCount, emptyAll};
 }
 
 /* ================= 탭 ================= */
@@ -441,6 +445,9 @@ async function runRank(){
   const out = $('rkOut');
   const hs = cleanHs($('rkHs').value);
   if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요. (①탭에서 찾을 수 있습니다)'); return; }
+  const unit = $('rkUnit').value;
+  if (unit === '10' && hs.length !== 10){ out.innerHTML = errBox('10자리 조회는 HS코드 10자리를 입력해야 합니다.\n10자리를 모르면 "6자리" 단위로 조회해 아래 세부 품목 목록에서 고르세요.'); return; }
+  const hsC = unit === '10' ? hs : hs.slice(0, 6);   // 관세청에 보낼 코드
   const hs6 = hs.slice(0, 6), year = $('rkYear').value;
   const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
   setHs(hs);
@@ -448,7 +455,7 @@ async function runRank(){
   const [ref, cm, cu] = await Promise.all([
     loadRef(),
     koreaExports(hs6, year).then(r => ({rows: r}), e => ({err: e})),
-    cfg.proxy ? customsRank(hs, from, to, ISO_LIST).catch(e => ({err: e})) : Promise.resolve({noProxy: true})
+    cfg.proxy ? customsRank(hsC, from, to, ISO_LIST).catch(e => ({err: e})) : Promise.resolve({noProxy: true})
   ]);
 
   // UN Comtrade
@@ -476,7 +483,7 @@ async function runRank(){
   const cmItems = cmTop.map(([c, v]) => ({label: countryName(c, ref), value: v}));
   const cuItems = cuTop.map(([iso, v]) => ({label: (BY_ISO.get(iso) || [0, 0, iso])[2], value: v}));
   let html = `<div class="grid2">` +
-    box('관세청 · 통관 기준', `${fmtHs(hs)} · ${from.slice(0, 4)}.${from.slice(4)} ~ ${to.slice(0, 4)}.${to.slice(4)}${cu.name ? ' · ' + esc(cu.name) : ''}`, cuItems, cuTotal, cuErr, cuNote, 'b2') +
+    box('관세청 · 통관 기준', `${fmtHs(hsC)} · ${from.slice(0, 4)}.${from.slice(4)} ~ ${to.slice(0, 4)}.${to.slice(4)}${cu.name ? ' · ' + esc(cu.name) : ''}`, cuItems, cuTotal, cuErr, cuNote, 'b2') +
     box('UN Comtrade · 국제 기준', `HS ${fmtHs(hs6)} · ${year}년 · 한국 → 각국`, cmItems, cmTotal, cmErr, '', '') + `</div>`;
 
   // 비교표
@@ -490,11 +497,18 @@ async function runRank(){
       `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost" id="rkCsv" type="button">CSV로 저장</button><button class="btn ghost" id="rkCopy" type="button">표 복사(엑셀 붙여넣기용)</button></div></div>`;
     lastRank = [['국가', '관세청 수출액(USD)', 'UN Comtrade 수출액(USD)'], ...list.map(r => [countryName(r.c, ref), r.cu ?? '', r.cm ?? ''])];
   }
+  if (unit === '6' && cu.byHs && cu.byHs.size > 1){
+    const hl = [...cu.byHs].sort((a, b) => b[1].exp - a[1].exp).slice(0, 15);
+    html += `<div class="card"><h3>관세청 세부 품목 (10자리)</h3><div class="hint" style="margin:0 0 8px">${fmtHs(hsC)} 아래의 품목별 수출액(조회 국가 합계)입니다. 버튼을 누르면 그 세번만 따로 조회합니다.</div><div class="scroll"><table><thead><tr><th>세번</th><th>품목명</th><th class="r">수출액</th><th></th></tr></thead><tbody>` +
+      hl.map(([h, v]) => `<tr><td><b>${esc(h)}</b></td><td>${esc(v.name)}</td><td class="r">${usd(v.exp)}</td><td><button class="btn ghost" data-hs10="${esc(h)}" type="button">이 세번만 조회</button></td></tr>`).join('') + `</tbody></table></div></div>`;
+  }
   out.innerHTML = html;
+  out.querySelectorAll('button[data-hs10]').forEach(b => b.addEventListener('click', () => { $('rkHs').value = b.dataset.hs10; $('rkUnit').value = '10'; runRank(); }));
   $('rkCsv')?.addEventListener('click', () => download(`수출순위_${hs}.csv`, toCsv(lastRank)));
   $('rkCopy')?.addEventListener('click', async e => { try { await navigator.clipboard.writeText(lastRank.map(r => r.join('\t')).join('\n')); e.target.textContent = '복사했습니다'; } catch (x) { e.target.textContent = '복사 실패'; } });
 }
 $('rkGo').addEventListener('click', runRank);
+$('rkHs').addEventListener('input', () => { const n = cleanHs($('rkHs').value).length; if (n === 10) $('rkUnit').value = '10'; else if (n && n < 10) $('rkUnit').value = '6'; });
 
 /* ---------- ③ 세계 시장 ---------- */
 async function runWorld(){
@@ -555,7 +569,7 @@ $('tdYear').addEventListener('click', async () => {
     (bad ? errBox('일부 연도 조회 실패: ' + bad.bad) : '') + `<p class="hint">최신 연도는 자료가 비어 있으면 0으로 보입니다.</p></div>`;
 });
 $('tdMonth').addEventListener('click', async () => {
-  const out = $('tdOut'); const hs = cleanHs($('tdHs').value); const iso = $('tdCty').selectedOptions[0].dataset.iso;
+  const out = $('tdOut'); const hs0 = cleanHs($('tdHs').value); const hs = $('rkUnit').value === '10' && hs0.length === 10 ? hs0 : hs0.slice(0, 6); const iso = $('tdCty').selectedOptions[0].dataset.iso;
   if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
   if (!cfg.proxy){ out.innerHTML = errBox('월별 추이는 관세청 자료라 중계 서버 연결이 필요합니다.'); return; }
   const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
