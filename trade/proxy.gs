@@ -18,14 +18,14 @@ var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
 var REF_NAMES = ['Reporters', 'partnerAreas', 'HS'];
 
-// UNI-PASS OpenAPI (인증키: 스크립트 속성 UNIPASS_KEY). 허용한 서비스·입력값만 중계한다.
+// UNI-PASS OpenAPI (인증키는 API별로 발급되어 스크립트 속성 UNIPASS_KEY_HS/TRRT/FX/LCA/LCALIST에 저장). 허용한 서비스·입력값만 중계한다.
 var UNIPASS_BASE = 'https://unipass.customs.go.kr:38010/ext/rest/';
 var UNIPASS_OPS = {
-  hs:      { path: 'hsSgnQry/searchHsSgn',                    allow: ['hsSgn', 'prnm', 'koenTp'] },   // HS 부호·품명 검색
-  trrt:    { path: 'trrtQry/retrieveTrrt',                    allow: ['hsSgn', 'trrtTpcd'] },         // 관세율(협정세율 포함)
-  fx:      { path: 'trifFxrtInfoQry/retrieveTrifFxrtInfo',    allow: ['qryYymmDd', 'imexTp'] },       // 관세환율
-  lca:     { path: 'lcaBrkdQry/retrieveLcaBrkd',              allow: ['lcaSgn', 'brno'] },            // 관세사 내역
-  lcalist: { path: 'lcaLstInfoQry/retrieveLcaBrkd',           allow: ['lcaSgn', 'jrsdCstm'] }         // 관세사 목록
+  hs:      { prop: 'UNIPASS_KEY_HS', path: 'hsSgnQry/searchHsSgn',                    allow: ['hsSgn', 'prnm', 'koenTp'] },   // HS 부호·품명 검색
+  trrt:    { prop: 'UNIPASS_KEY_TRRT', path: 'trrtQry/retrieveTrrt',                    allow: ['hsSgn', 'trrtTpcd'] },         // 관세율(협정세율 포함)
+  fx:      { prop: 'UNIPASS_KEY_FX', path: 'trifFxrtInfoQry/retrieveTrifFxrtInfo',    allow: ['qryYymmDd', 'imexTp'] },       // 관세환율
+  lca:     { prop: 'UNIPASS_KEY_LCA', path: 'lcaBrkdQry/retrieveLcaBrkd',              allow: ['lcaSgn', 'brno'] },            // 관세사 내역
+  lcalist: { prop: 'UNIPASS_KEY_LCALIST', path: 'lcaLstInfoQry/retrieveLcaBrkd',           allow: ['lcaSgn', 'jrsdCstm'] }         // 관세사 목록
 };
 
 function doGet(e) {
