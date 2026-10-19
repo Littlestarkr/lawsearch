@@ -18,6 +18,16 @@ var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
 var REF_NAMES = ['Reporters', 'partnerAreas', 'HS'];
 
+// UNI-PASS OpenAPI (인증키: 스크립트 속성 UNIPASS_KEY). 허용한 서비스·입력값만 중계한다.
+var UNIPASS_BASE = 'https://unipass.customs.go.kr:38010/ext/rest/';
+var UNIPASS_OPS = {
+  hs:      { path: 'hsSgnQry/searchHsSgn',                    allow: ['hsSgn', 'prnm', 'koenTp'] },   // HS 부호·품명 검색
+  trrt:    { path: 'trrtQry/retrieveTrrt',                    allow: ['hsSgn', 'trrtTpcd'] },         // 관세율(협정세율 포함)
+  fx:      { path: 'trifFxrtInfoQry/retrieveTrifFxrtInfo',    allow: ['qryYymmDd', 'imexTp'] },       // 관세환율
+  lca:     { path: 'lcaBrkdQry/retrieveLcaBrkd',              allow: ['lcaSgn', 'brno'] },            // 관세사 내역
+  lcalist: { path: 'lcaLstInfoQry/retrieveLcaBrkd',           allow: ['lcaSgn', 'jrsdCstm'] }         // 관세사 목록
+};
+
 function doGet(e) {
   var p = (e && e.parameter) || {};
   var out;
@@ -25,7 +35,8 @@ function doGet(e) {
     if (p.a === 'customs') out = customs_(p);
     else if (p.a === 'comtrade') out = comtrade_(p);
     else if (p.a === 'ref') out = ref_(p);
-    else if (p.a === 'ping') out = { ok: true, key: !!prop_('DATA_GO_KEY') };
+    else if (p.a === 'unipass') out = unipass_(p);
+    else if (p.a === 'ping') out = { ok: true, key: !!prop_('DATA_GO_KEY'), unipassKey: !!prop_('UNIPASS_KEY') };
     else out = { error: '알 수 없는 요청입니다.' };
   } catch (err) {
     out = { error: String(err && err.message || err) };
@@ -118,4 +129,48 @@ function ref_(p) {
   var r = UrlFetchApp.fetch(REF_BASE + p.name + '.json', { muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { error: 'HTTP ' + r.getResponseCode() };
   return JSON.parse(r.getContentText());
+}
+
+/* ---------- UNI-PASS ---------- */
+function unipass_(p) {
+  var key = prop_('UNIPASS_KEY');
+  if (!key) return { error: '스크립트 속성 UNIPASS_KEY(UNI-PASS 인증키)가 없습니다.' };
+  var op = UNIPASS_OPS[p.op];
+  if (!op) return { error: '허용되지 않은 UNI-PASS 서비스입니다.' };
+  var qs = 'crkyCn=' + encodeURIComponent(key);
+  op.allow.forEach(function (k) {
+    if (p[k] !== undefined && String(p[k]) !== '') qs += '&' + k + '=' + encodeURIComponent(String(p[k]).slice(0, 200));
+  });
+  var url = UNIPASS_BASE + op.path + '?' + qs;
+  var cache = CacheService.getScriptCache();
+  var ck = 'p' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, url.replace(encodeURIComponent(key), 'K'))).slice(0, 40);
+  var hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var r;
+  try { r = UrlFetchApp.fetch(url, { muteHttpExceptions: true }); }
+  catch (e) { return { error: 'UNI-PASS에 연결하지 못했습니다: ' + String(e.message || e) }; }
+  var text = r.getContentText();
+  if (r.getResponseCode() !== 200) return { error: 'UNI-PASS HTTP ' + r.getResponseCode(), raw: text.slice(0, 300) };
+  var out = parseUnipass_(text);
+  if (!out.error) { try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {} }
+  return out;
+}
+
+function parseUnipass_(text) {
+  var doc;
+  try { doc = XmlService.parse(text); } catch (e) { return { error: '응답을 읽지 못했습니다.', raw: text.slice(0, 300) }; }
+  var root = doc.getRootElement();
+  var ntce = '', tcnt = '', rows = [];
+  root.getChildren().forEach(function (c) {
+    var n = c.getName();
+    if (n === 'ntceInfo') ntce = c.getText();
+    else if (n === 'tCnt') tcnt = c.getText();
+    else if (/RsltVo$/.test(n)) {
+      var row = {};
+      c.getChildren().forEach(function (f) { row[f.getName()] = f.getText(); });
+      rows.push(row);
+    }
+  });
+  if (tcnt === '-1') return { error: ntce || 'UNI-PASS 오류' };
+  return { tCnt: tcnt, ntce: ntce, rows: rows };
 }

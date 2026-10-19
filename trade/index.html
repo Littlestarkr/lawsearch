@@ -98,7 +98,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
     <button class="tab" data-p="rank">② 수출 상대국 순위</button>
     <button class="tab" data-p="world">③ 세계 수입시장·점유율</button>
     <button class="tab" data-p="trend">④ 추이</button>
-    <button class="tab" data-p="more">⑤ 관세율·무역협회</button>
+    <button class="tab" data-p="more">⑤ 환율·관세사·링크</button>
   </div>
 
   <!-- ① HS -->
@@ -110,6 +110,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
       </div>
       <p class="hint">한글 품목명은 자주 쓰는 수출 품목 사전에서, 영어 단어와 숫자 코드는 UN HS 분류표 전체에서 찾습니다. 사전의 코드는 참고용이니 최종 확정은 관세청 HS 검색으로 하세요. 10자리를 넣으면 앞 6자리의 분류를 보여 주고, ②탭에서 10자리 단위로 조회할 수 있습니다.</p>
     </div>
+    <div id="hsUni"></div>
     <div id="hsOut"></div>
     <div id="hsDetail"></div>
   </section>
@@ -170,9 +171,22 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
       <a href="https://comtradeplus.un.org/" target="_blank" rel="noopener"><b>UN Comtrade ↗</b><span>세계 각국의 상품 무역 통계(HS 6단위)</span></a>
       <a href="../" ><b>HappyOh 법령 길잡이 →</b><span>대외무역법·관세법 등 법령 검색</span></a>
     </div>
-    <div class="card" style="margin-top:14px"><h3>관세율은?</h3>
-      <p class="hint" style="margin-top:2px">관세율·협정세율 조회 API(UNI-PASS)는 별도 인증키가 필요해 아직 이 화면에 넣지 않았습니다. 인증키를 받으면 ①탭 결과에 관세율을 함께 보여 주도록 이어서 만들 수 있습니다. 지금은 위 관세법령정보포털에서 확인하세요.</p></div>
-  </section>
+    <div class="card" style="margin-top:14px"><h3>관세 환율 (UNI-PASS)</h3>
+      <div class="row">
+        <div><label for="fxDate">기준일</label><input id="fxDate" type="date"></div>
+        <div><label for="fxTp">구분</label><select id="fxTp"><option value="1">수출</option><option value="2">수입</option></select></div>
+        <button class="btn" id="fxGo" type="button">환율 보기</button>
+      </div>
+      <p class="hint">관세청이 고시하는 과세 환율(외화 1단위당 원화)입니다. 주요 통화를 먼저 보여 줍니다.</p>
+      <div id="fxOut"></div></div>
+    <div class="card"><h3>관세사 조회 (UNI-PASS)</h3>
+      <div class="row">
+        <div class="grow"><label for="lcaQ">관세사부호(5자리) 또는 사업자등록번호(10자리)</label><input id="lcaQ" style="width:100%" placeholder="숫자만 입력"></div>
+        <button class="btn" id="lcaGo" type="button">조회</button>
+      </div>
+      <p class="hint">관세사의 상호·전화번호·주소·관할세관을 보여 줍니다. 관세사 부호를 모르면 관세법령정보포털에서 찾을 수 있습니다.</p>
+      <div id="lcaOut"></div></div>
+    </section>
 
   <details class="guide" style="margin-top:20px">
     <summary>데이터 출처와 한계</summary>
@@ -405,6 +419,7 @@ async function runHs(){
   const q = $('hsq').value.trim(); const out = $('hsOut');
   if (!q) return;
   $('hsDetail').innerHTML = '';
+  runUni(q, cleanHs(q), /^[\d.\-\s]+$/.test(q) && cleanHs(q).length >= 2);
   let html = '';
   const digits = cleanHs(q);
   const isCode = /^[\d.\-\s]+$/.test(q) && digits.length >= 2;
@@ -460,6 +475,82 @@ async function showDetail(code){
     box.scrollIntoView?.({behavior: 'smooth', block: 'nearest'});
   } catch (e) { box.innerHTML = errBox(e.message); }
 }
+
+/* ---------- UNI-PASS (HS 10자리·관세율·환율·관세사) ---------- */
+const uni = (op, params) => viaProxy('unipass', {op, ...params});
+const rateNum = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+async function runUni(q, digits, isCode){
+  const box = $('hsUni');
+  if (!cfg.proxy){ box.innerHTML = ''; return; }
+  let params;
+  if (isCode){ if (digits.length !== 10){ box.innerHTML = ''; return; } params = {hsSgn: digits, koenTp: 1}; }
+  else params = {prnm: q, koenTp: /[가-힣]/.test(q) ? 1 : 2};
+  box.innerHTML = '<div class="state">관세청 HS부호(10자리)를 찾는 중…</div>';
+  try {
+    const j = await uni('hs', params);
+    const by = new Map();
+    (j.rows || []).forEach(r => {
+      const h = by.get(r.hsSgn) || {hs: r.hsSgn, name: r.korePrnm || r.englPrnm || '', basic: null, kinds: 0};
+      h.kinds++;
+      if (r.txtpSgn === 'A' && h.basic == null) h.basic = rateNum(r.txrt);
+      by.set(r.hsSgn, h);
+    });
+    const list = [...by.values()].sort((a, b) => a.hs.localeCompare(b.hs));
+    if (!list.length){ box.innerHTML = `<div class="state">관세청 HS부호에서 "${esc(q)}"을(를) 찾지 못했습니다.${j.ntce ? ' (' + esc(j.ntce) + ')' : ''}</div>`; return; }
+    const shown = list.slice(0, 60);
+    box.innerHTML = `<div class="card"><h3>관세청 HS부호 (10자리) <span class="tag ok">${list.length}건</span></h3><div class="hint" style="margin:0 0 8px">품명에 "${esc(q)}"이(가) 들어간 세번입니다.${list.length > shown.length ? ` 상위 ${shown.length}건만 표시합니다.` : ''}</div><div class="scroll"><table><thead><tr><th>세번</th><th>품명</th><th class="r">기본세율</th><th></th></tr></thead><tbody>` +
+      shown.map(h => `<tr><td><b>${fmtHs(h.hs)}</b></td><td>${esc(h.name.length > 90 ? h.name.slice(0, 90) + '…' : h.name)}</td><td class="r">${h.basic != null ? h.basic + '%' : '-'}</td>` +
+        `<td style="white-space:nowrap"><button class="btn ghost" data-u="tariff" data-c="${esc(h.hs)}">관세율</button> <button class="btn ghost" data-u="rank" data-c="${esc(h.hs)}">수출 순위</button></td></tr>`).join('') +
+      `</tbody></table></div></div>`;
+  } catch (e) { box.innerHTML = errBox('관세청 HS부호 조회 오류: ' + e.message); }
+}
+$('hsUni').addEventListener('click', e => {
+  const b = e.target.closest('button[data-u]'); if (!b) return;
+  if (b.dataset.u === 'tariff') showTariff(b.dataset.c);
+  else { setHs(b.dataset.c); $('rkUnit').value = '10'; showTab('rank'); runRank(); }
+});
+async function showTariff(hs){
+  const box = $('hsDetail');
+  box.innerHTML = `<div class="state">${fmtHs(hs)} 관세율을 불러오는 중…</div>`;
+  try {
+    const j = await uni('trrt', {hsSgn: hs});
+    const rows = (j.rows || []);
+    if (!rows.length){ box.innerHTML = errBox(`관세율 정보가 없습니다.${j.ntce ? '\n' + j.ntce : ''}`); return; }
+    const nums = rows.map(r => rateNum(r.trrt)).filter(v => v != null);
+    const min = nums.length ? Math.min(...nums) : null;
+    box.innerHTML = `<div class="card"><h3>${fmtHs(hs)} 관세율</h3><div class="hint" style="margin:0 0 8px">기본세율과 FTA·할당 등 적용 가능한 세율입니다. 실제 적용은 원산지 증명 등 요건을 갖췄을 때 가능하니 관세법령정보포털에서 최종 확인하세요.</div><div class="scroll"><table><thead><tr><th>구분</th><th class="r">관세율</th><th class="r">단위당 세액</th><th>적용 기간</th></tr></thead><tbody>` +
+      rows.map(r => { const n = rateNum(r.trrt); return `<tr><td>${esc(r.trrtTpNm || r.trrtTpcd)}${n != null && n === min && rows.length > 1 ? ' <span class="tag ok">최저</span>' : ''}</td><td class="r">${n != null ? n + '%' : '-'}</td><td class="r">${esc(r.prutXamt || '-')}</td><td>${esc(fmtDate8(r.aplyStrtDt))} ~ ${esc(fmtDate8(r.aplyEndDt))}</td></tr>`; }).join('') +
+      `</tbody></table></div></div>`;
+    box.scrollIntoView?.({behavior: 'smooth', block: 'nearest'});
+  } catch (e) { box.innerHTML = errBox(e.message); }
+}
+const fmtDate8 = v => v && v.length === 8 ? `${v.slice(0, 4)}.${v.slice(4, 6)}.${v.slice(6)}` : (v || '');
+
+$('fxGo').addEventListener('click', async () => {
+  const out = $('fxOut'); const d = $('fxDate').value.replace(/-/g, '');
+  if (!d){ out.innerHTML = errBox('기준일을 선택하세요.'); return; }
+  out.innerHTML = '<div class="state">불러오는 중…</div>';
+  try {
+    const j = await uni('fx', {qryYymmDd: d, imexTp: $('fxTp').value});
+    const rows = (j.rows || []).filter(r => r.currSgn && r.currSgn !== 'KRW');
+    if (!rows.length){ out.innerHTML = errBox('환율 정보가 없습니다.' + (j.ntce ? '\n' + j.ntce : '')); return; }
+    const main = ['USD', 'JPY', 'EUR', 'CNY', 'GBP', 'HKD', 'VND', 'THB', 'SGD', 'AUD'];
+    rows.sort((a, b) => { const ia = main.indexOf(a.currSgn), ib = main.indexOf(b.currSgn); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.currSgn.localeCompare(b.currSgn); });
+    out.innerHTML = `<div class="scroll"><table><thead><tr><th>통화</th><th>화폐 단위</th><th class="r">환율(원)</th><th>적용 개시</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td><b>${esc(r.currSgn)}</b>${r.cntySgn ? ' · ' + esc(r.cntySgn) : ''}</td><td>${esc(r.mtryUtNm || r.mtryUtlNm || '')}</td><td class="r">${esc(r.fxrt)}</td><td>${esc(fmtDate8(r.aplyBgnDt))}</td></tr>`).join('') + `</tbody></table></div>`;
+  } catch (e) { out.innerHTML = errBox(e.message); }
+});
+$('lcaGo').addEventListener('click', async () => {
+  const out = $('lcaOut'); const v = cleanHs($('lcaQ').value);
+  if (v.length !== 5 && v.length !== 10){ out.innerHTML = errBox('관세사부호 5자리 또는 사업자등록번호 10자리를 입력하세요.'); return; }
+  out.innerHTML = '<div class="state">불러오는 중…</div>';
+  try {
+    const j = await uni('lca', v.length === 5 ? {lcaSgn: v} : {brno: v});
+    const rows = j.rows || [];
+    if (!rows.length){ out.innerHTML = errBox('조회된 관세사가 없습니다.' + (j.ntce ? '\n' + j.ntce : '')); return; }
+    out.innerHTML = rows.map(r => `<div class="card" style="margin:8px 0 0"><h3>${esc(r.lcaConm)}</h3><div class="hint" style="margin:0">${esc(r.jrsdCstmNm || '')} · 관세사부호 ${esc(r.lcaSgn || '')}${r.rppnNm ? ' · 대표 ' + esc(r.rppnNm) : ''}<br>전화 ${esc(r.telNo || r.telno || '-')}<br>${esc(r.addr || '')}</div></div>`).join('');
+  } catch (e) { out.innerHTML = errBox(e.message); }
+});
 
 /* ---------- ② 순위 ---------- */
 let lastRank = null;
@@ -615,6 +706,7 @@ $('tdMonth').addEventListener('click', async () => {
   const pm = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   const end = new Date(y, now.getMonth() - 1, 1), start = new Date(y, now.getMonth() - 12, 1);
   $('rkTo').value = pm(end); $('rkFrom').value = pm(start);
+  $('fxDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   $('tdCty').innerHTML = COUNTRIES.map(c => `<option value="${c[1]}" data-iso="${c[0]}">${c[2]}</option>`).join('');
   const q = new URLSearchParams(location.search);
   if (q.get('hs')){ setHs(cleanHs(q.get('hs'))); $('hsq').value = q.get('hs'); }
