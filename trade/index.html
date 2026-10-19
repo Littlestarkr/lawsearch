@@ -111,6 +111,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
       <p class="hint">한글 품목명은 자주 쓰는 수출 품목 사전에서, 영어 단어와 숫자 코드는 UN HS 분류표 전체에서 찾습니다. 사전의 코드는 참고용이니 최종 확정은 관세청 HS 검색으로 하세요. 10자리를 넣으면 앞 6자리의 분류를 보여 주고, ②탭에서 10자리 단위로 조회할 수 있습니다.</p>
     </div>
     <div id="hsOut"></div>
+    <div id="hsDetail"></div>
   </section>
 
   <!-- ② 순위 -->
@@ -277,8 +278,8 @@ const cleanHs = s => String(s || '').replace(/\D/g, '');
 const errBox = m => `<div class="err">${esc(m)}</div>`;
 
 /* ================= API ================= */
-async function getJson(url){
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 90000);
+async function getJson(url, ms = 90000){
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
   try {
     const r = await fetch(url, {signal: ctl.signal});
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -385,8 +386,8 @@ function loadHs(){
   if (hsPromise) return hsPromise;
   hsPromise = (async () => {
     let j;
-    try { j = await getJson('https://comtradeapi.un.org/files/v1/app/reference/HS.json'); }
-    catch (e) { try { j = await viaProxy('ref', {name: 'HS'}); } catch (e2) { throw new Error('UN HS 분류표를 불러오지 못했습니다. (' + e2.message + ')'); } }
+    try { j = await getJson('https://comtradeapi.un.org/files/v1/app/reference/HS.json', 12000); }
+    catch (e) { try { j = await getJson(cfg.proxy + (cfg.proxy.includes('?') ? '&' : '?') + new URLSearchParams({a: 'ref', name: 'HS'}), 45000); if (j && j.error) throw new Error(j.error); } catch (e2) { throw new Error('UN HS 분류표를 불러오지 못했습니다. (' + e2.message + ')'); } }
     hsList = toArr(j.results).map(r => ({id: String(r.id), text: String(r.text || '').replace(/^\s*[\d.]+\s*-\s*/, ''), parent: r.parent}));
     return hsList;
   })();
@@ -397,12 +398,13 @@ const fmtHs = c => c.length === 6 ? c.slice(0, 4) + '.' + c.slice(4) : c.length 
 function hsRows(items){
   return `<div class="card scroll"><table><thead><tr><th>HS코드</th><th>품목</th><th></th></tr></thead><tbody>` +
     items.map(it => `<tr><td><b>${fmtHs(it.code)}</b></td><td>${esc(it.ko || '')}${it.ko && it.en ? '<br>' : ''}<span style="color:var(--sub);font-size:12.5px">${esc(it.en || '')}</span></td>` +
-      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}</td></tr>`).join('') +
+      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}${it.code.length === 6 && cfg.proxy ? ` <button class="btn ghost" data-a="detail" data-c="${it.code}">10자리 세부 품목</button>` : ''}</td></tr>`).join('') +
     `</tbody></table></div>`;
 }
 async function runHs(){
   const q = $('hsq').value.trim(); const out = $('hsOut');
   if (!q) return;
+  $('hsDetail').innerHTML = '';
   let html = '';
   const digits = cleanHs(q);
   const isCode = /^[\d.\-\s]+$/.test(q) && digits.length >= 2;
@@ -437,7 +439,27 @@ async function runHs(){
 }
 $('hsGo').addEventListener('click', runHs);
 $('hsq').addEventListener('keydown', e => { if (e.key === 'Enter') runHs(); });
-$('hsOut').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (b) goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a); });
+$('hsOut').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  if (b.dataset.a === 'detail') showDetail(b.dataset.c); else goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a);
+});
+// 6자리 아래의 10자리 세번을 관세청 실적에서 찾는다 (주요 수출국 14곳, ②탭의 기간 사용)
+const TOP_ISO = ['US', 'CN', 'JP', 'VN', 'HK', 'TW', 'SG', 'AU', 'DE', 'TH', 'ID', 'MY', 'IN', 'CA'];
+async function showDetail(code){
+  const box = $('hsDetail');
+  const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
+  box.innerHTML = `<div class="state">관세청 실적에서 ${fmtHs(code)} 아래 10자리 세번을 찾는 중…</div>`;
+  try {
+    const r = await customsRank(code, from, to, TOP_ISO);
+    if (r.firstErr && !r.byHs.size){ box.innerHTML = errBox('관세청 응답 오류: ' + r.firstErr); return; }
+    const list = [...r.byHs].sort((a, b) => b[1].exp - a[1].exp);
+    if (!list.length){ box.innerHTML = errBox(`${from}~${to} 기간에 주요 수출국 14곳으로 나간 실적이 없거나, 관세청이 6자리 조회를 받지 않았습니다.\n10자리 세번을 알면 ②탭에서 10자리로 직접 조회하세요.`); return; }
+    box.innerHTML = `<div class="card"><h3>${fmtHs(code)} 아래 10자리 세번</h3><div class="hint" style="margin:0 0 8px">관세청 수출 실적이 있는 세번입니다 (주요 14개국 합계, ${from.slice(0, 4)}.${from.slice(4)}~${to.slice(0, 4)}.${to.slice(4)}). 실적이 없는 세번은 보이지 않습니다.</div><div class="scroll"><table><thead><tr><th>세번(10자리)</th><th>품목명</th><th class="r">수출액</th><th></th></tr></thead><tbody>` +
+      list.map(([h, v]) => `<tr><td><b>${esc(h)}</b></td><td>${esc(v.name)}</td><td class="r">${usd(v.exp)}</td><td><button class="btn ghost" data-hs10="${esc(h)}" type="button">이 세번 순위</button></td></tr>`).join('') + `</tbody></table></div></div>`;
+    box.querySelectorAll('button[data-hs10]').forEach(b => b.addEventListener('click', () => { setHs(b.dataset.hs10); $('rkUnit').value = '10'; showTab('rank'); runRank(); }));
+    box.scrollIntoView?.({behavior: 'smooth', block: 'nearest'});
+  } catch (e) { box.innerHTML = errBox(e.message); }
+}
 
 /* ---------- ② 순위 ---------- */
 let lastRank = null;
