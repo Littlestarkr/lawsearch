@@ -37,6 +37,10 @@ input:focus,select:focus{outline:none;border-color:var(--brand)}
 .clr.has .x{display:block}
 .grow .clr{display:block}
 .ctx{color:var(--sub);font-size:12px}
+.floatnav{position:fixed;left:16px;bottom:16px;z-index:900;display:flex;gap:8px}
+.floatnav button{font:inherit;font-size:14px;cursor:pointer;border:0;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px;font-weight:600}
+.floatnav .fn-top{background:var(--card);color:var(--brand);border:1px solid var(--line);width:42px;height:42px;padding:0}
+@media (max-width:768px){.floatnav{left:10px;bottom:10px}.floatnav button{font-size:13px;padding:10px 14px}.floatnav .fn-top{width:38px;height:38px}}
 .grow{flex:1;min-width:180px}
 .btn{font:inherit;font-size:14px;padding:10px 18px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font-weight:700;cursor:pointer}
 .btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--line);font-weight:600;padding:7px 12px;font-size:13px}
@@ -842,6 +846,20 @@ $('ctGo').addEventListener('click', async () => {
     $('ctCsv').addEventListener('click', () => download(`국가별_총수출_${from}-${to}.csv`, toCsv(lastNation)));
   } catch (e) { out.innerHTML = errBox(e.message); }
 });
+
+/* ================= 이전 화면 / 맨 위로 ================= */
+(function(){
+  const bar = document.createElement('div'); bar.className = 'floatnav';
+  bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
+  document.body.appendChild(bar);
+  bar.querySelector('.fn-back').addEventListener('click', () => {
+    let same = false;
+    try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (same && history.length > 1) history.back();                                  // 홈페이지·법령 길잡이 등 직전 화면
+    else location.href = 'https://littlestarkr.github.io/export3/global-expansion.html#stats';   // 직접 들어왔으면 홈페이지 글로벌 진출 페이지로
+  });
+  bar.querySelector('.fn-top').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
+})();
 
 /* ================= 입력칸 ✕ 지우기 ================= */
 function addClear(id, onClear){
