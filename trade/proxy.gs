@@ -13,6 +13,8 @@
  */
 
 var CUSTOMS_URL = 'https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList';
+var ITEM_URLS = ['https://apis.data.go.kr/1220000/Itemtrade/getItemtradeList', 'https://apis.data.go.kr/1220000/itemtrade/getItemtradeList'];   // 품목별 수출입실적(국가 구분 없음)
+var NATION_URL = 'https://apis.data.go.kr/1220000/nationtrade/getNationtradeList';                                              // 국가별 수출입실적(품목 구분 없음)
 var COMTRADE_URL = 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
 var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
@@ -33,6 +35,8 @@ function doGet(e) {
   var out;
   try {
     if (p.a === 'customs') out = customs_(p);
+    else if (p.a === 'item') out = item_(p);
+    else if (p.a === 'nation') out = nation_(p);
     else if (p.a === 'comtrade') out = comtrade_(p);
     else if (p.a === 'ref') out = ref_(p);
     else if (p.a === 'unipass') out = unipass_(p);
@@ -75,6 +79,59 @@ function customs_(p) {
       if (!parsed.error && parsed.code === '00') {
         try { cache.put(reqCodes[i].ck, JSON.stringify(parsed), 21600); } catch (e) {}
       }
+    });
+  }
+  return { results: results };
+}
+
+/* ---------- 관세청 품목별(국가 합계) ---------- */
+function item_(p) {
+  var key = prop_('DATA_GO_KEY');
+  if (!key) return { error: '스크립트 속성 DATA_GO_KEY(공공데이터포털 인증키)가 없습니다.' };
+  var k = key.indexOf('%') >= 0 ? key : encodeURIComponent(key);
+  var from = String(p.from || ''), to = String(p.to || ''), hs = String(p.hs || '').replace(/\D/g, '');
+  if (!/^\d{6}$/.test(from) || !/^\d{6}$/.test(to)) return { error: '조회 기간(YYYYMM)이 올바르지 않습니다.' };
+  if (hs.length < 2 || hs.length > 10) return { error: 'HS코드는 2~10자리여야 합니다.' };
+  var cache = CacheService.getScriptCache();
+  var last = { error: '응답이 없습니다.' };
+  for (var i = 0; i < ITEM_URLS.length; i++) {
+    var url = ITEM_URLS[i] + '?serviceKey=' + k + '&strtYymm=' + from + '&endYymm=' + to + '&hsSgn=' + hs;
+    var ck = 'i' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, url.replace(k, 'K'))).slice(0, 40);
+    var hit = cache.get(ck);
+    if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+    var r = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    var parsed = parseCustoms_(r.getContentText(), r.getResponseCode());
+    if (!parsed.error && parsed.code === '00') { try { cache.put(ck, JSON.stringify(parsed), 21600); } catch (e) {} return parsed; }
+    last = parsed;
+    if (r.getResponseCode() !== 404) break;   // 주소 대소문자가 다를 때만 다음 주소를 시도한다
+  }
+  return last;
+}
+
+/* ---------- 관세청 국가별(품목 합계) ---------- */
+function nation_(p) {
+  var key = prop_('DATA_GO_KEY');
+  if (!key) return { error: '스크립트 속성 DATA_GO_KEY(공공데이터포털 인증키)가 없습니다.' };
+  var k = key.indexOf('%') >= 0 ? key : encodeURIComponent(key);
+  var from = String(p.from || ''), to = String(p.to || '');
+  if (!/^\d{6}$/.test(from) || !/^\d{6}$/.test(to)) return { error: '조회 기간(YYYYMM)이 올바르지 않습니다.' };
+  var list = String(p.cnty || '').split(',').filter(function (c) { return /^[A-Za-z]{2}$/.test(c); }).slice(0, 80);
+  if (!list.length) return { error: '국가 코드가 없습니다.' };
+  var cache = CacheService.getScriptCache();
+  var results = {}, reqs = [], reqCodes = [];
+  list.forEach(function (c) {
+    var url = NATION_URL + '?serviceKey=' + k + '&strtYymm=' + from + '&endYymm=' + to + '&cntyCd=' + c.toUpperCase();
+    var ck = 'n' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, url.replace(k, 'K'))).slice(0, 40);
+    var hit = cache.get(ck);
+    if (hit) { try { results[c.toUpperCase()] = JSON.parse(hit); return; } catch (e) {} }
+    reqs.push({ url: url, muteHttpExceptions: true });
+    reqCodes.push({ c: c.toUpperCase(), ck: ck });
+  });
+  if (reqs.length) {
+    UrlFetchApp.fetchAll(reqs).forEach(function (r, i) {
+      var parsed = parseCustoms_(r.getContentText(), r.getResponseCode());
+      results[reqCodes[i].c] = parsed;
+      if (!parsed.error && parsed.code === '00') { try { cache.put(reqCodes[i].ck, JSON.stringify(parsed), 21600); } catch (e) {} }
     });
   }
   return { results: results };
