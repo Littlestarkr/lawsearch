@@ -15,6 +15,7 @@
 var CUSTOMS_URL = 'https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList';
 var ITEM_URLS = ['https://apis.data.go.kr/1220000/Itemtrade/getItemtradeList', 'https://apis.data.go.kr/1220000/itemtrade/getItemtradeList'];   // 품목별 수출입실적(국가 구분 없음)
 var NATION_URL = 'https://apis.data.go.kr/1220000/nationtrade/getNationtradeList';                                              // 국가별 수출입실적(품목 구분 없음)
+var CERT_URLS = ['https://apis.data.go.kr/b410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/B410001/overseasAuthInfo/getOverseasAuthInfo'];   // KOTRA 해외인증정보
 var COMTRADE_URL = 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
 var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
@@ -36,6 +37,7 @@ function doGet(e) {
   try {
     if (p.a === 'customs') out = customs_(p);
     else if (p.a === 'item') out = item_(p);
+    else if (p.a === 'cert') out = cert_(p);
     else if (p.a === 'nation') out = nation_(p);
     else if (p.a === 'comtrade') out = comtrade_(p);
     else if (p.a === 'ref') out = ref_(p);
@@ -82,6 +84,51 @@ function customs_(p) {
     });
   }
   return { results: results };
+}
+
+/* ---------- KOTRA 해외인증정보 (공공데이터포털, 같은 인증키) ---------- */
+function cert_(p) {
+  var key = prop_('DATA_GO_KEY');
+  if (!key) return { error: '스크립트 속성 DATA_GO_KEY(공공데이터포털 인증키)가 없습니다.' };
+  var k = key.indexOf('%') >= 0 ? key : encodeURIComponent(key);
+  var qs = '';
+  ['search1', 'search2', 'search3', 'search4', 'search5'].forEach(function (n) {
+    var v = String(p[n] || '').slice(0, 100);
+    if (v) qs += '&' + n + '=' + encodeURIComponent(v);
+  });
+  var page = Math.max(1, Math.min(500, parseInt(p.pageNo, 10) || 1));
+  var rows = Math.max(1, Math.min(100, parseInt(p.numOfRows, 10) || 30));
+  qs += '&pageNo=' + page + '&numOfRows=' + rows;
+  var cache = CacheService.getScriptCache();
+  var ck = 'k' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, qs)).slice(0, 40);
+  var hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var last = { error: '응답이 없습니다.' };
+  for (var i = 0; i < CERT_URLS.length; i++) {
+    var r = UrlFetchApp.fetch(CERT_URLS[i] + '?serviceKey=' + k + '&type=json' + qs, { muteHttpExceptions: true });
+    var text = r.getContentText();
+    if (r.getResponseCode() === 404) { last = { error: 'HTTP 404', raw: text.slice(0, 200) }; continue; }
+    var out;
+    if (text.charAt(0) === '<') {   // 인증키 오류 등은 XML로 온다
+      var pe = parseCustoms_(text, r.getResponseCode());
+      out = { error: pe.error || pe.msg || '응답을 읽지 못했습니다.', raw: pe.raw };
+    } else {
+      var j;
+      try { j = JSON.parse(text); } catch (e) { return { error: '응답을 읽지 못했습니다.', raw: text.slice(0, 200) }; }
+      var resp = j.response || {};
+      var code = resp.header && resp.header.resultCode;
+      if (code && code !== '00') out = { error: (resp.header.resultMsg || code) };
+      else {
+        var body = resp.body || {};
+        var it = body.itemList && body.itemList.item;
+        var items = !it ? [] : (Array.isArray(it) ? it : [it]);
+        out = { total: parseInt(body.totalCnt, 10) || items.length, page: page, items: items };
+      }
+    }
+    if (!out.error) { try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {} }   // 100KB 초과면 저장 생략
+    return out;
+  }
+  return last;
 }
 
 /* ---------- 관세청 품목별(국가 합계) ---------- */

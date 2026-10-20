@@ -12,3 +12,6 @@
 - `trade/index.html` : HS코드 찾기, 한국 수출 상대국 순위(관세청+UN Comtrade 비교), 세계 수입시장·한국 점유율, 연·월 추이. 주소: `/lawsearch/trade/`
 - `trade/proxy.gs` : Google Apps Script 중계 서버(관세청 인증키 숨김·CORS 우회). 배포 방법은 파일 상단 주석 참고. 배포 후 `index.html`의 `DEFAULT_PROXY`에 웹 앱 URL을 넣는다.
 - 한국무역협회(K-stat)는 공개 API가 없어 링크로만 연결한다.
+
+## cert/ — HappyOh 해외인증 길잡이
+KOTRA 해외인증정보(공공데이터포털 `B410001/overseasAuthInfo/getOverseasAuthInfo`)를 품목명·인증제도명·HS코드(6자리)로 찾는다. 중계 서버 `proxy.gs`의 `a=cert`를 거치며 인증키는 `DATA_GO_KEY`를 함께 쓴다. 국가 검색 변수는 없어서 결과를 받은 뒤 국가별로 거른다. 이용허락범위가 공공누리 제4유형(출처표시·상업적 이용금지·변경금지)이므로 원문을 고치지 않고 출처를 표시한다. 무역통계 길잡이 ①탭의 [해외인증] 버튼이 `?hs=`로 연결한다.

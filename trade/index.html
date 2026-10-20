@@ -447,7 +447,7 @@ const fmtHs = c => c.length === 6 ? c.slice(0, 4) + '.' + c.slice(4) : c.length 
 function hsRows(items){
   return `<div class="card scroll"><table><thead><tr><th>HS코드</th><th>품목</th><th></th></tr></thead><tbody>` +
     items.map(it => `<tr><td><b>${fmtHs(it.code)}</b></td><td>${esc(it.ko || '')}${it.ko && it.en ? '<br>' : ''}<span style="color:var(--sub);font-size:12.5px">${esc(it.en || '')}</span></td>` +
-      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}${it.code.length === 6 && cfg.proxy ? ` <button class="btn ghost" data-a="detail" data-c="${it.code}">이 분류의 10자리 전체 보기</button>` : ''}</td></tr>`).join('') +
+      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button> <button class="btn ghost" data-a="cert" data-c="${it.code}">해외인증</button>` : ''}${it.code.length === 6 && cfg.proxy ? ` <button class="btn ghost" data-a="detail" data-c="${it.code}">이 분류의 10자리 전체 보기</button>` : ''}</td></tr>`).join('') +
     `</tbody></table></div>`;
 }
 async function runHs(){
@@ -492,7 +492,9 @@ $('hsGo').addEventListener('click', runHs);
 $('hsq').addEventListener('keydown', e => { if (e.key === 'Enter') runHs(); });
 $('hsOut').addEventListener('click', e => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
-  if (b.dataset.a === 'detail') showDetail(b.dataset.c); else goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a);
+  if (b.dataset.a === 'detail') showDetail(b.dataset.c);
+  else if (b.dataset.a === 'cert') location.href = '../cert/?hs=' + b.dataset.c.slice(0, 6);
+  else goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a);
 });
 // 6자리 아래의 10자리 세번을 관세청 실적에서 찾는다 (주요 수출국 14곳, ②탭의 기간 사용)
 const TOP_ISO = ['US', 'CN', 'JP', 'VN', 'HK', 'TW', 'SG', 'AU', 'DE', 'TH', 'ID', 'MY', 'IN', 'CA'];
@@ -555,7 +557,7 @@ function krTable(codes, title, note){
   const shown = codes.slice(0, 80);
   return `<div class="card"><h3>${title} <span class="tag ok">${codes.length}건</span></h3><div class="hint" style="margin:0 0 8px">${note}${codes.length > shown.length ? ` 상위 ${shown.length}건만 표시합니다. 검색어를 더 구체적으로 입력해 보세요.` : ''}</div><div class="scroll"><table><thead><tr><th>세번(10자리)</th><th>품명</th><th></th></tr></thead><tbody>` +
     shown.map(c => { const ch = krChain(c).slice(-2).join(' › '); return `<tr><td><b>${fmtHs(c)}</b></td><td>${esc(krMap.get(c))}${ch ? `<br><span class="ctx">${esc(shortTxt(ch, 70))}</span>` : ''}</td>` +
-      `<td style="white-space:nowrap"><button class="btn ghost" data-u="tariff" data-c="${c}">관세율</button> <button class="btn ghost" data-u="rank" data-c="${c}">수출 순위</button></td></tr>`; }).join('') +
+      `<td style="white-space:nowrap"><button class="btn ghost" data-u="tariff" data-c="${c}">관세율</button> <button class="btn ghost" data-u="rank" data-c="${c}">수출 순위</button> <button class="btn ghost" data-u="cert" data-c="${c}">해외인증</button></td></tr>`; }).join('') +
     `</tbody></table></div></div>`;
 }
 async function runLocal(q, digits, isCode){
@@ -604,6 +606,7 @@ async function runUni(q, digits, isCode){
 $('hsUni').addEventListener('click', e => {
   const b = e.target.closest('button[data-u]'); if (!b) return;
   if (b.dataset.u === 'tariff') showTariff(b.dataset.c);
+  else if (b.dataset.u === 'cert') location.href = '../cert/?hs=' + b.dataset.c.slice(0, 6);
   else { setHs(b.dataset.c); $('rkUnit').value = '10'; showTab('rank'); runRank(); }
 });
 async function showTariff(hs){

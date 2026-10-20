@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HappyOh 해외인증 길잡이</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
+  --brand:#14507a; --brand-ink:#ffffff; --soft:#e8f1f8; --warn:#fff6e5; --warn-line:#f0c36d;
+  --ok:#e7f6ee; --ok-ink:#176640; --bar:#3d86b8; --bar2:#e0953a; --err:#fdecec; --err-line:#e49a9a;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10151b; --card:#18202a; --ink:#e8edf2; --sub:#9aa7b6; --line:#2a3542; --brand:#5aa9dd; --brand-ink:#0b1722; --soft:#17283a; --warn:#2a2412; --warn-line:#6b5a22; --ok:#12301f; --ok-ink:#7fd6a4; --bar:#5aa9dd; --bar2:#e0a35a; --err:#341a1a; --err-line:#7a3a3a;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",-apple-system,sans-serif;line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 60px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{margin:0;font-size:26px;letter-spacing:-.02em}
+.sub{margin:6px 0 0;color:var(--sub);font-size:15px}
+.gear{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+.notice{background:var(--warn);border:1px solid var(--warn-line);border-radius:10px;padding:10px 14px;font-size:13px;margin:16px 0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px;border-bottom:1px solid var(--line)}
+.tab{border:0;background:none;color:var(--sub);font-size:15px;padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;font-weight:600}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.card h3{margin:0 0 4px;font-size:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:3px}
+input,select{font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--brand)}
+.clr{position:relative;display:inline-block}
+.clr input{padding-right:30px;width:100%}
+.clr .x{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:0;border-radius:50%;background:var(--line);color:var(--sub);font-size:15px;line-height:1;cursor:pointer;display:none;padding:0}
+.clr.has .x{display:block}
+.grow .clr{display:block}
+.ctx{color:var(--sub);font-size:12px}
+.floatnav{position:fixed;left:16px;bottom:16px;z-index:900;display:flex;gap:8px}
+.floatnav button{font:inherit;font-size:14px;cursor:pointer;border:0;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px;font-weight:600}
+.floathome{position:fixed;right:16px;bottom:16px;z-index:900;font-size:14px;font-weight:600;text-decoration:none;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px}
+.floatnav .fn-top{background:var(--card);color:var(--brand);border:1px solid var(--line);width:42px;height:42px;padding:0}
+@media (max-width:768px){.floathome{right:10px;bottom:10px;font-size:13px;padding:10px 14px}.floatnav{left:10px;bottom:10px}.floatnav button{font-size:13px;padding:10px 14px}.floatnav .fn-top{width:38px;height:38px}}
+.grow{flex:1;min-width:180px}
+.btn{font:inherit;font-size:14px;padding:10px 18px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font-weight:700;cursor:pointer}
+.btn.ghost{background:var(--card);color:var(--brand);border:1px solid var(--line);font-weight:600;padding:7px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.hint{font-size:12.5px;color:var(--sub);margin:8px 0 0}
+.state{padding:22px 8px;text-align:center;color:var(--sub)}
+.err{background:var(--err);border:1px solid var(--err-line);border-radius:10px;padding:10px 14px;font-size:13.5px;margin:10px 0;white-space:pre-wrap}
+.okbox{background:var(--ok);color:var(--ok-ink);border-radius:10px;padding:10px 14px;font-size:13.5px;margin:10px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.hb{display:grid;grid-template-columns:22px 108px 1fr 86px;gap:6px;align-items:center;font-size:13px;margin:4px 0}
+.hb .n{color:var(--sub);text-align:right}
+.hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .t{background:var(--soft);border-radius:4px;height:16px;overflow:hidden}
+.hb .t i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.hb.b2 .t i{background:var(--bar2)}
+.hb .v{text-align:right;color:var(--sub);font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--sub);font-weight:600;font-size:12.5px}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;background:var(--soft);color:var(--brand);font-size:12px;font-weight:600;margin-right:4px}
+.tag.ok{background:var(--ok);color:var(--ok-ink)}
+.vb{display:flex;align-items:flex-end;gap:6px;height:190px;padding:8px 0 0}
+.vb div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.vb i{display:block;width:100%;max-width:46px;background:var(--bar);border-radius:4px 4px 0 0;min-height:2px}
+.vb small{font-size:11px;color:var(--sub);margin-top:4px;white-space:nowrap}
+.vb b{font-size:11px;font-weight:600;margin-bottom:2px;white-space:nowrap}
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.links a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.links a:hover{border-color:var(--brand)}
+.links b{display:block;color:var(--brand);margin-bottom:2px}
+.links span{font-size:13px;color:var(--sub)}
+details.guide{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:0 0 14px}
+details.guide summary{cursor:pointer;font-weight:700;color:var(--brand);font-size:14px}
+details.guide li{font-size:13.5px;margin:5px 0}
+code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:12.5px}
+footer{margin-top:28px;color:var(--sub);font-size:12.5px}
+.settings{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px}
+.settings.open{display:block}
+.settings input{width:100%}
+
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 90px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 10px}
+.item>summary{cursor:pointer;padding:12px 16px;list-style:none}
+.item>summary::-webkit-details-marker{display:none}
+.item h4{margin:4px 0 2px;font-size:15px}
+.item .meta{font-size:12.5px;color:var(--sub)}
+.item .body{padding:4px 16px 14px;border-top:1px solid var(--line)}
+.f{margin:12px 0 0}
+.f b{display:block;font-size:12.5px;color:var(--brand);margin-bottom:2px}
+.f div{white-space:pre-wrap;font-size:13.5px;line-height:1.65;overflow-wrap:anywhere}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{font:inherit;font-size:13px;padding:4px 12px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);cursor:pointer}
+.chip.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.tag.must{background:var(--err);color:#a33}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 style="margin:0;font-size:26px;letter-spacing:-.02em">HappyOh 해외인증 길잡이</h1>
+  <p style="margin:6px 0 14px;color:var(--sub);font-size:15px">수출하려는 품목에 어떤 해외 인증이 필요한지, 인증 절차·비용·기간을 KOTRA 해외무역관 정보로 찾아봅니다.</p>
+  <div class="okbox" style="background:var(--warn);color:var(--ink);border:1px solid var(--warn-line)">참고용 정보입니다. 인증 제도와 비용·기간은 수시로 바뀌므로, 수출 전에는 해당 국가 기관이나 KOTRA 해외무역관에서 최신 내용을 확인하세요.</div>
+
+  <div class="card">
+    <div class="row">
+      <div class="grow"><label for="q1">품목명</label><span class="clr"><input id="q1" style="width:100%" placeholder="예) 의료기기, 화장품, 식품, 전기제품"></span></div>
+      <div class="grow"><label for="q2">인증제도명</label><span class="clr"><input id="q2" style="width:100%" placeholder="예) CE, KC, FDA, 할랄"></span></div>
+      <div style="min-width:130px"><label for="q5">HS코드(6자리)</label><span class="clr"><input id="q5" style="width:100%" placeholder="예) 902214"></span></div>
+      <button class="btn" id="go" type="button">찾기</button>
+      <button class="btn ghost" id="reset" type="button">✕ 조건 지우기</button>
+    </div>
+    <p class="hint">조건을 하나만 넣어도 됩니다. 결과가 많으면 아래 국가 버튼으로 걸러 보세요. HS코드는 <a href="../trade/" style="color:var(--brand)">무역통계 길잡이</a>에서 찾을 수 있습니다.</p>
+  </div>
+  <div id="out"></div>
+
+  <footer>
+    <div>출처: 대한무역투자진흥공사(KOTRA) 「해외인증정보」 (공공데이터포털). 공공누리 제4유형(출처표시·상업적 이용금지·변경금지)에 따라 원문을 고치지 않고 그대로 보여 줍니다. · 이 화면은 참고용이며 법률·투자 자문이 아닙니다.</div>
+  </footer>
+</div>
+<script>
+const DEFAULT_PROXY = 'https://script.google.com/macros/s/AKfycbyxK8PJbI34BQRNdphE8N-K4AXw73c14WahVeaBSAoYep7Lo6dy9wIW1vkpaVtPiSlZIQ/exec';
+const cfg = { proxy: DEFAULT_PROXY };
+try { const s = JSON.parse(localStorage.getItem('trade.cfg') || '{}'); if (s.proxy) cfg.proxy = s.proxy; } catch (e) {}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const errBox = m => `<div class="err">${esc(m)}</div>`;
+async function getJson(url, ms = 90000){
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(url, {signal: ctl.signal}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  catch (e) { throw new Error(e.name === 'AbortError' ? '응답 시간이 초과되었습니다.' : e.message); }
+  finally { clearTimeout(t); }
+}
+async function viaProxy(a, params){
+  const j = await getJson(cfg.proxy + (cfg.proxy.includes('?') ? '&' : '?') + new URLSearchParams({a, ...params}));
+  if (j && j.error) throw new Error(j.error + (j.raw ? '\n' + j.raw : ''));
+  return j;
+}
+
+// 응답 필드 → 화면 제목 (순서대로, 비어 있으면 숨김)
+const FIELDS = [
+  ['systCn', '제도 내용'], ['applyTgtCmdItCn', '적용 대상 품목'], ['cmdItDfnCn', '품목 설명(HS)'], ['expansApplyCmdItCn', '확대 적용 품목'],
+  ['basisRegItnCn', '근거 법령'], ['crtfcInsttCn', '인증 기관'], ['testInsttCn', '시험 기관'], ['crtfcProsCn', '인증 절차'],
+  ['needPapersCn', '필요 서류'], ['testStdrCn', '시험 기준'], ['crtfcCostCn', '인증 비용'], ['testCostCn', '시험 비용'],
+  ['affatMntCostCn', '사후관리 비용'], ['crtfcRqrmnPdCn', '인증 소요 기간'], ['testRqrmnPdCn', '시험 소요 기간'], ['crtfcValidPdCn', '인증 유효 기간'],
+  ['eryyFctryJdgmtCn', '공장 심사'], ['indcEraCn', '도입 시기'], ['arcvCn', '기록'], ['atnotiCn', '유의사항'], ['crtfcInfoAtnotiCn', '인증 정보 유의사항'], ['etcCn', '기타']
+];
+let state = {items: [], total: 0, page: 1, q: null, country: ''};
+const clean = v => String(v ?? '').replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n|\r/g, '\n').trim();
+
+function render(){
+  const out = $('out');
+  const items = state.items.filter(x => !state.country || x.nat === state.country);
+  const cnt = {}; state.items.forEach(x => { const n = x.nat || '기타'; cnt[n] = (cnt[n] || 0) + 1; });
+  const chips = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+  out.innerHTML = `<div class="hint" style="margin:0 0 6px">검색 결과 ${state.total}건 중 ${state.items.length}건을 불러왔습니다${state.country ? ' · ' + esc(state.country) + ' ' + items.length + '건' : ''}.</div>` +
+    (chips.length > 1 ? `<div class="chips"><button class="chip${state.country ? '' : ' on'}" data-c="">전체</button>` + chips.map(([n, c]) => `<button class="chip${state.country === n ? ' on' : ''}" data-c="${esc(n)}">${esc(n)} ${c}</button>`).join('') + `</div>` : '') +
+    items.map((x, i) => {
+      const f = FIELDS.map(([k, l]) => [l, clean(x[k])]).filter(a => a[1]);
+      return `<details class="item"><summary><span class="tag">${esc(x.nat || '')}</span>${x.crtfcGbnVal ? `<span class="tag${x.crtfcGbnVal === '강제' ? ' must' : ' ok'}">${esc(x.crtfcGbnVal)}</span>` : ''}${x.crtfcTyVal ? `<span class="tag">${esc(x.crtfcTyVal)}</span>` : ''}<h4>${esc(clean(x.systeNm) || clean(x.nttSj))}</h4><div class="meta">${esc(clean(x.nttSj))}${x.hscd ? ' · HS ' + esc(x.hscd) : ''}${x.ovrofInfo ? ' · ' + esc(x.ovrofInfo) : ''}${x.othbcDt ? ' · 공개 ' + esc(x.othbcDt) : ''}</div></summary><div class="body">` +
+        (f.length ? f.map(([l, v]) => `<div class="f"><b>${esc(l)}</b><div>${esc(v)}</div></div>`).join('') : '<div class="hint">상세 내용이 없습니다.</div>') + `<div class="hint" style="margin-top:12px">출처: KOTRA ${esc(x.ovrofInfo || '')} · 등록 ${esc(x.regDt || '')}</div></div></details>`;
+    }).join('') +
+    (state.items.length < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 불러오기 (${state.total - state.items.length}건 남음)</button></div>` : '');
+  out.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { state.country = b.dataset.c; render(); }));
+  $('more')?.addEventListener('click', () => load(state.page + 1));
+}
+async function load(page){
+  const out = $('out'); const q = state.q;
+  if (page === 1) out.innerHTML = '<div class="state">해외인증 정보를 불러오는 중…</div>';
+  const btn = $('more'); if (btn){ btn.disabled = true; btn.textContent = '불러오는 중…'; }
+  try {
+    const j = await viaProxy('cert', {...q, pageNo: page, numOfRows: 50});
+    state.total = j.total || 0; state.page = page;
+    state.items = page === 1 ? (j.items || []) : state.items.concat(j.items || []);
+    if (!state.items.length){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>`; return; }
+    render();
+  } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + e.message); }
+}
+function run(){
+  const q = {search1: $('q1').value.trim(), search2: $('q2').value.trim(), search5: $('q5').value.replace(/\D/g, '').slice(0, 6)};
+  Object.keys(q).forEach(k => { if (!q[k]) delete q[k]; });
+  state = {items: [], total: 0, page: 1, q, country: ''};
+  load(1);
+}
+$('go').addEventListener('click', run);
+['q1', 'q2', 'q5'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
+
+/* 입력칸 ✕ */
+['q1', 'q2', 'q5'].forEach(id => {
+  const inp = $(id), w = inp.parentNode; w.style.display = 'block';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'x'; b.setAttribute('aria-label', '지우기'); b.textContent = '×'; w.appendChild(b);
+  const sync = () => w.classList.toggle('has', !!inp.value); inp.addEventListener('input', sync); inp._sync = sync;
+  b.addEventListener('click', () => { inp.value = ''; sync(); inp.focus(); });
+});
+$('reset').addEventListener('click', () => { ['q1', 'q2', 'q5'].forEach(id => { $(id).value = ''; $(id)._sync(); }); $('out').innerHTML = ''; state = {items: [], total: 0, page: 1, q: null, country: ''}; $('q1').focus(); });
+
+/* 이전 화면 / 맨 위로 / 홈페이지 */
+(function(){
+  const bar = document.createElement('div'); bar.className = 'floatnav';
+  bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
+  document.body.appendChild(bar);
+  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://littlestarkr.github.io/export3/'; home.textContent = 'HappyOh Consulting'; document.body.appendChild(home);
+  bar.querySelector('.fn-back').addEventListener('click', () => {
+    let same = false;
+    try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (same && history.length > 1) history.back();
+    else location.href = 'https://littlestarkr.github.io/export3/global-expansion.html#cert';
+  });
+  bar.querySelector('.fn-top').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
+})();
+
+/* 주소로 바로 열기: ?q=의료기기 &hs=902214 &c=제도명 */
+(function(){
+  const p = new URLSearchParams(location.search);
+  if (p.get('q')) $('q1').value = p.get('q');
+  if (p.get('c')) $('q2').value = p.get('c');
+  if (p.get('hs')) $('q5').value = p.get('hs').replace(/\D/g, '').slice(0, 6);
+  ['q1', 'q2', 'q5'].forEach(id => $(id)._sync());
+  if (p.get('q') || p.get('c') || p.get('hs')) run();
+})();
+</script>
+</body>
+</html>
