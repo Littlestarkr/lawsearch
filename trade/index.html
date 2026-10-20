@@ -702,7 +702,7 @@ async function runRank(){
 
   const box = (title, sub, items, total, err, note, cls) => `<div class="card"><h3>${title}</h3><div class="hint" style="margin:0 0 8px">${sub}</div>` +
     (err ? errBox(err) : note ? `<div class="state" style="padding:12px">${esc(note)}</div>` :
-      `<div class="okbox" style="margin:0 0 8px">합계 ${usd(total)} · 1위 ${esc(items[0].label)} ${pct(items[0].value / total * 100)}</div>` + hbars(items.slice(0, 15), cls)) + `</div>`;
+      `<div class="okbox" style="margin:0 0 8px">조회합계 ${usd(total)} · 1위 ${esc(items[0].label)} ${pct(items[0].value / total * 100)}</div>` + hbars(items.slice(0, 15), cls)) + `</div>`;
   const cmItems = cmTop.map(([c, v]) => ({label: countryName(c, ref), value: v}));
   const cuItems = cuTop.map(([iso, v]) => ({label: (BY_ISO.get(iso) || [0, 0, iso])[2], value: v}));
   let html = `<div class="grid2">` +
@@ -715,7 +715,7 @@ async function runRank(){
   cuTop.slice(0, 20).forEach(([iso]) => { const c = (BY_ISO.get(iso) || [])[1]; if (c && !rows.has(c)) rows.set(c, {c, iso, cm: cmMap.get(c), cu: cu.map.get(iso).exp}); });
   const list = [...rows.values()].sort((a, b) => (b.cu ?? b.cm ?? 0) - (a.cu ?? a.cm ?? 0));
   if (list.length){
-    html += `<div class="card"><h3>한눈에 비교</h3><div class="hint" style="margin:0 0 8px">두 통계의 기간·기준이 다르므로 순위와 규모를 비교하는 용도로 보세요.</div><div class="scroll"><table><thead><tr><th>국가</th><th class="r">관세청 수출액</th><th class="r">UN Comtrade 수출액</th><th class="r">비중(관세청)</th></tr></thead><tbody>` +
+    html += `<div class="card"><h3>한눈에 비교</h3><div class="hint" style="margin:0 0 8px">두 통계의 기간·기준(HS 6자리,10자리)이 다를 수 있으므로 순위와 규모를 비교하는 용도로 보세요.</div><div class="scroll"><table><thead><tr><th>국가</th><th class="r">관세청 수출액</th><th class="r">UN Comtrade 수출액</th><th class="r">비중(관세청)</th></tr></thead><tbody>` +
       list.map(r => `<tr><td>${esc(countryName(r.c, ref))}</td><td class="r">${r.cu != null ? usd(r.cu) : '-'}</td><td class="r">${r.cm != null ? usd(r.cm) : '-'}</td><td class="r">${r.cu && cuTotal ? pct(r.cu / cuTotal * 100) : '-'}</td></tr>`).join('') +
       `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost" id="rkCsv" type="button">CSV로 저장</button><button class="btn ghost" id="rkCopy" type="button">표 복사(엑셀 붙여넣기용)</button></div></div>`;
     lastRank = [['국가', '관세청 수출액(USD)', 'UN Comtrade 수출액(USD)'], ...list.map(r => [countryName(r.c, ref), r.cu ?? '', r.cm ?? ''])];
