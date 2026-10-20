@@ -569,6 +569,27 @@ function krTable(codes, title, note){
       `<td style="white-space:nowrap"><button class="btn ghost" data-u="tariff" data-c="${c}">관세율</button> <button class="btn ghost" data-u="rank" data-c="${c}">수출 순위</button> <button class="btn ghost" data-u="cert" data-c="${c}">해외인증</button></td></tr>`; }).join('') +
     `</tbody></table></div></div>`;
 }
+let krGroups = null;
+function renderGroups(){
+  const box = $('hsUni'), {q, groups} = krGroups;
+  const arr = [...groups.entries()], total = arr.reduce((a, [, v]) => a + v.length, 0);
+  box.innerHTML = `<div class="card"><h3>관련 HS 6자리 <span class="tag ok">${arr.length}개</span></h3><div class="hint" style="margin:0 0 8px">"${esc(q)}"와 관련된 6자리 분류입니다(10자리 세번 ${total}건). 6자리를 고른 뒤 <b>10자리 보기</b>로 세부 코드를 보거나, 바로 수출 순위를 조회하세요.</div><div class="scroll"><table><thead><tr><th>HS 6자리</th><th>품명</th><th></th></tr></thead><tbody>` +
+    arr.slice(0, 60).map(([g, v]) => `<tr><td><b>${fmtHs(g)}</b></td><td>${esc(krMap.get(g) || krChain(v[0]).slice(-1)[0] || '')}<br><span class="ctx">10자리 ${v.length}건</span></td>` +
+      `<td style="white-space:nowrap"><button class="btn ghost" data-g="kids" data-c="${g}">10자리 보기</button> <button class="btn ghost" data-g="rank" data-c="${g}">수출 순위</button> <button class="btn ghost" data-g="world" data-c="${g}">세계 시장</button> <button class="btn ghost" data-g="cert" data-c="${g}">해외인증</button></td></tr>`).join('') +
+    `</tbody></table></div>${arr.length > 60 ? '<div class="hint">상위 60개만 표시합니다. 검색어를 더 구체적으로 입력해 보세요.</div>' : ''}</div>`;
+}
+$('hsUni').addEventListener('click', e => {
+  const b = e.target.closest('button[data-g], button[data-back]'); if (!b || !krGroups) return;
+  if (b.dataset.back){ renderGroups(); return; }
+  const g = b.dataset.c;
+  if (b.dataset.g === 'kids'){
+    const codes = krGroups.groups.get(g) || [];
+    $('hsUni').innerHTML = `<div class="row" style="margin:0 0 8px"><button class="btn ghost" data-back="1" type="button">← 6자리 목록으로</button></div>` +
+      krTable(codes, `${fmtHs(g)} 아래 10자리 세번`, `${esc(shortTxt(krMap.get(g) || '', 60))} 분류의 세번입니다.`);
+    $('hsUni').scrollIntoView({behavior: 'smooth', block: 'start'});
+  } else if (b.dataset.g === 'cert') location.href = '../cert/?hs=' + g;
+  else goAnalyze(g, b.dataset.g);
+});
 async function runLocal(q, digits, isCode){
   const box = $('hsUni');
   box.innerHTML = '<div class="state">관세청 품목표를 찾는 중…</div>';
@@ -576,6 +597,11 @@ async function runLocal(q, digits, isCode){
   const codes = krSearch(q, digits, isCode);
   if (codes && codes.length){
     const six = isCode && digits.length >= 6 ? krMap.get(digits.slice(0, 6)) : '';
+    if (!(isCode && digits.length >= 6)){   // 이름·4~5자리 검색: 6자리 묶음을 먼저 보여 준다
+      const groups = new Map();
+      codes.forEach(c => { const g = c.slice(0, 6); (groups.get(g) || groups.set(g, []).get(g)).push(c); });
+      if (groups.size > 1){ krGroups = {q, groups}; renderGroups(); return; }
+    }
     box.innerHTML = krTable(codes, '관세청 HS 10자리 품목', six ? `${fmtHs(digits.slice(0, 6))} ${esc(shortTxt(six, 60))} 아래 세번입니다.` : `품명·상위 분류에 "${esc(q)}"${UNI_ALIAS[q] ? '(관세청 품명: ' + esc(UNI_ALIAS[q]) + ')' : ''}이(가) 들어간 세번입니다.`);
     return;
   }
