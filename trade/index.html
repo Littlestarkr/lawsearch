@@ -423,9 +423,14 @@ function showTab(p){
 }
 // 선택한 HS를 모든 탭 입력칸에 공유
 function setHs(code){ ['rkHs', 'wdHs', 'tdHs'].forEach(id => { $(id).value = code; $(id)._sync && $(id)._sync(); }); }
+function prepRank(){
+  $('rkOut').innerHTML = '<div class="hint" style="text-align:center;padding:14px">조회 기간·단위를 확인한 뒤 <b>순위 보기</b>를 눌러 주세요.</div>';
+  const p = $('p-rank'); if (p && p.scrollIntoView) p.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
 function goAnalyze(code, tab){
   setHs(code); showTab(tab);
-  ({rank: runRank, world: runWorld, trend: () => {}})[tab]();
+  if (tab === 'rank') return prepRank();
+  ({world: runWorld, trend: () => {}})[tab]();
 }
 
 /* ---------- ① HS 찾기 ---------- */
@@ -515,7 +520,7 @@ async function showDetail(code){
     (errMsg ? `<div class="err">관세청 실적은 불러오지 못했습니다: ${esc(errMsg.split('\n')[0])}</div>` : '') +
     `<div class="scroll"><table><thead><tr><th>세번(10자리)</th><th>품목명</th><th class="r">수출액</th><th></th></tr></thead><tbody>` +
     list.map(v => `<tr><td><b>${fmtHs(v.h)}</b></td><td>${esc(v.name)}</td><td class="r">${v.exp ? usd(v.exp) : '-'}</td><td style="white-space:nowrap"><button class="btn ghost" data-hs10="${esc(v.h)}" type="button">이 세번 순위</button> <button class="btn ghost" data-t10="${esc(v.h)}" type="button">관세율</button></td></tr>`).join('') + `</tbody></table></div></div>`;
-  box.querySelectorAll('button[data-hs10]').forEach(b => b.addEventListener('click', () => { setHs(b.dataset.hs10); $('rkUnit').value = '10'; showTab('rank'); runRank(); }));
+  box.querySelectorAll('button[data-hs10]').forEach(b => b.addEventListener('click', () => { setHs(b.dataset.hs10); $('rkUnit').value = '10'; showTab('rank'); prepRank(); }));
   box.querySelectorAll('button[data-t10]').forEach(b => b.addEventListener('click', () => showTariff(b.dataset.t10)));
   box.scrollIntoView?.({behavior: 'smooth', block: 'nearest'});
 }
@@ -606,7 +611,7 @@ $('hsUni').addEventListener('click', e => {
   const b = e.target.closest('button[data-u]'); if (!b) return;
   if (b.dataset.u === 'tariff') showTariff(b.dataset.c);
   else if (b.dataset.u === 'cert') location.href = '../cert/?hs=' + b.dataset.c.slice(0, 6);
-  else { setHs(b.dataset.c); $('rkUnit').value = '10'; showTab('rank'); runRank(); }
+  else { setHs(b.dataset.c); $('rkUnit').value = '10'; showTab('rank'); prepRank(); }
 });
 async function showTariff(hs){
   let box = $('hsTariff');
