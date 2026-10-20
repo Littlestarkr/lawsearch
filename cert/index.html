@@ -151,7 +151,9 @@ const FIELDS = [
   ['eryyFctryJdgmtCn', '공장 심사'], ['indcEraCn', '도입 시기'], ['arcvCn', '기록'], ['atnotiCn', '유의사항'], ['crtfcInfoAtnotiCn', '인증 정보 유의사항'], ['etcCn', '기타']
 ];
 let state = {items: [], total: 0, page: 1, q: null, country: ''};
-const clean = v => String(v ?? '').replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n|\r/g, '\n').trim();
+const _ta = document.createElement('textarea');
+const decode = t => { _ta.innerHTML = t; return _ta.value; };   // &middot; 같은 HTML 문자 코드를 글자로 (내용은 그대로)
+const clean = v => decode(String(v ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n')).replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n|\r/g, '\n').trim();
 
 function render(){
   const out = $('out');
