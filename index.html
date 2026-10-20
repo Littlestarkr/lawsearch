@@ -68,8 +68,9 @@ details>summary{cursor:pointer;font-weight:700;padding:8px 0}
 .score{font-size:12px;color:var(--sub)}
 .floatnav{position:fixed;left:16px;bottom:16px;z-index:900;display:flex;gap:8px}
 .floatnav button{font:inherit;font-size:14px;cursor:pointer;border:0;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px;font-weight:600}
+.floathome{position:fixed;right:16px;bottom:16px;z-index:900;font-size:14px;font-weight:600;text-decoration:none;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px}
 .floatnav .fn-top{background:var(--card);color:var(--brand);border:1px solid var(--line);width:42px;height:42px;padding:0}
-@media (max-width:768px){.floatnav{left:10px;bottom:10px}.floatnav button{font-size:13px;padding:10px 14px}.floatnav .fn-top{width:38px;height:38px}}
+@media (max-width:768px){.floathome{right:10px;bottom:10px;font-size:13px;padding:10px 14px}.floatnav{left:10px;bottom:10px}.floatnav button{font-size:13px;padding:10px 14px}.floatnav .fn-top{width:38px;height:38px}}
 .guide{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 16px;margin:0 0 14px;font-size:14px}
 .guide summary{cursor:pointer;font-weight:700;padding:8px 0;color:var(--brand)}
 .guide ul{margin:4px 0 10px;padding-left:20px}
@@ -83,7 +84,6 @@ details>summary{cursor:pointer;font-weight:700;padding:8px 0}
     <div>
       <h1>HappyOh 법령 길잡이</h1>
       <p>정확한 법령명을 몰라도 됩니다. 궁금한 상황을 편하게 적어 보세요.</p>
-      <p style="margin:10px 0 0"><a class="btn pri" style="display:inline-block;text-decoration:none;padding:9px 16px;font-size:14px;border-radius:10px" href="https://littlestarkr.github.io/export3/">HappyOh Consulting으로 들어가기 →</a></p>
     </div>
     <button class="gear" id="gear" type="button">⚙ 설정</button>
   </header>
@@ -750,6 +750,7 @@ if (initQ){ $('q').value = initQ; runSearch(initQ); }
   const bar = document.createElement('div'); bar.className = 'floatnav';
   bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
   document.body.appendChild(bar);
+  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://littlestarkr.github.io/export3/'; home.textContent = 'HappyOh Consulting'; document.body.appendChild(home);
   bar.querySelector('.fn-back').addEventListener('click', () => {
     let same = false;
     try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
