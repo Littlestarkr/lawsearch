@@ -132,10 +132,9 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
     <div class="card">
       <div class="row">
         <div><label for="rkHs">HS코드</label><input id="rkHs" size="14" placeholder="예) 330499 또는 3304991000"></div>
+        <div style="flex-basis:100%"><label>조회 기간 (관세청 · 최대 12개월)</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="rkFrom" type="month" aria-label="시작 월"><span>~</span><input id="rkTo" type="month" aria-label="끝 월"></div></div>
         <div><label for="rkUnit">관세청 조회 단위</label><select id="rkUnit"><option value="6">6자리 (하위 품목 합산)</option><option value="10">10자리 (정확한 세번)</option></select></div>
         <div><label for="rkYear">UN Comtrade 연도</label><select id="rkYear"></select></div>
-        <div><label for="rkFrom">관세청 기간(시작)</label><input id="rkFrom" type="month"></div>
-        <div><label for="rkTo">관세청 기간(끝)</label><input id="rkTo" type="month"></div>
         <button class="btn" id="rkGo" type="button">순위 보기</button>
         <button class="btn ghost" id="rkReset" type="button" title="입력한 HS코드·기간을 처음 상태로 되돌립니다">✕ 조건 지우기</button>
       </div>
