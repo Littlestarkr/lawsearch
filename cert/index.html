@@ -175,9 +175,10 @@ async function load(page){
   const btn = $('more'); if (btn){ btn.disabled = true; btn.textContent = '불러오는 중…'; }
   try {
     const j = await viaProxy('cert', {...q, pageNo: page, numOfRows: 50});
+    state.rawHead = j.rawHead || '';
     state.total = j.total || 0; state.page = page;
     state.items = page === 1 ? (j.items || []) : state.items.concat(j.items || []);
-    if (!state.items.length){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>`; return; }
+    if (!state.items.length){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>` + (state.rawHead ? `<details class="guide"><summary>서버 응답 원문 보기</summary><pre style="white-space:pre-wrap;font-size:12px;overflow-wrap:anywhere">${esc(state.rawHead)}</pre></details>` : ''); return; }
     render();
   } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + e.message); }
 }

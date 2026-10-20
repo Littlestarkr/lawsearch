@@ -107,6 +107,14 @@ function cert_(p) {
   for (var i = 0; i < CERT_URLS.length; i++) {
     var r = UrlFetchApp.fetch(CERT_URLS[i] + '?serviceKey=' + k + '&type=json' + qs, { muteHttpExceptions: true });
     var text = r.getContentText();
+    if (text.charAt(0) !== '<' && r.getResponseCode() === 200 && /"totalCnt"\s*:\s*"?0"?/.test(text)) {
+      // 검색 칸을 모두 채워야 동작하는 경우를 대비해, 비운 칸도 함께 보내 한 번 더 시도한다
+      var full = qs;
+      ['search1', 'search2', 'search3', 'search4', 'search5'].forEach(function (n) { if (full.indexOf('&' + n + '=') < 0) full += '&' + n + '='; });
+      var r2 = UrlFetchApp.fetch(CERT_URLS[i] + '?serviceKey=' + k + '&type=json' + full, { muteHttpExceptions: true });
+      var t2 = r2.getContentText();
+      if (r2.getResponseCode() === 200 && !/"totalCnt"\s*:\s*"?0"?/.test(t2)) { text = t2; r = r2; }
+    }
     if (r.getResponseCode() === 404) { last = { error: 'HTTP 404', raw: text.slice(0, 200) }; continue; }
     var out;
     if (text.charAt(0) === '<') {   // 인증키 오류 등은 XML로 온다
@@ -123,9 +131,10 @@ function cert_(p) {
         var it = body.itemList && body.itemList.item;
         var items = !it ? [] : (Array.isArray(it) ? it : [it]);
         out = { total: parseInt(body.totalCnt, 10) || items.length, page: page, items: items };
+        if (!items.length) out.rawHead = text.slice(0, 400);   // 결과가 없을 때 화면에서 원문을 확인할 수 있도록
       }
     }
-    if (!out.error) { try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {} }   // 100KB 초과면 저장 생략
+    if (!out.error && out.items && out.items.length) { try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {} }   // 100KB 초과면 저장 생략
     return out;
   }
   return last;
