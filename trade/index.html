@@ -206,7 +206,15 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
       </div>
       <p class="hint">관세청이 고시하는 과세 환율(외화 1단위당 원화)입니다. 주요 통화를 먼저 보여 줍니다.</p>
       <div id="fxOut"></div></div>
-    <div class="card"><h3>관세사 조회 (UNI-PASS)</h3>
+    <div class="card"><h3>관세사 찾기 (UNI-PASS)</h3>
+      <div class="row">
+        <div><label for="lcaHq">지역(본부세관)</label><select id="lcaHq"></select></div>
+        <div><label for="lcaCs">관할 세관</label><select id="lcaCs"></select></div>
+        <button class="btn" id="lcaList" type="button">관세사 목록 보기</button>
+      </div>
+      <p class="hint">세관을 고르면 그 세관 관할 관세사 목록이 나옵니다. 이름의 일부를 입력해 걸러낼 수 있고, 줄의 [상세]를 누르면 전화번호·주소·대표자를 볼 수 있습니다. (관세사별 실적 순위는 관세청이 공개하는 자료가 없어 제공하지 않습니다.)</p>
+      <div id="lcaListOut"></div></div>
+    <div class="card"><h3>관세사부호·사업자번호로 바로 조회</h3>
       <div class="row">
         <div class="grow"><label for="lcaQ">관세사부호(5자리) 또는 사업자등록번호(10자리)</label><input id="lcaQ" style="width:100%" placeholder="숫자만 입력"></div>
         <button class="btn" id="lcaGo" type="button">조회</button>
@@ -860,6 +868,48 @@ $('ctGo').addEventListener('click', async () => {
   });
   bar.querySelector('.fn-top').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
 })();
+
+const CUSTOMS = [["인천공항세관",[["040","인천공항세관"],["041","김포공항세관"]]],["서울세관",[["010","서울세관"],["130","서울세관 구로지원센터"],["131","안양세관"],["152","천안세관"],["151","청주세관"],["153","청주세관 충주지원센터"],["150","대전세관"],["101","속초세관"],["103","속초세관 고성지원센터"],["100","동해세관"],["102","동해세관 원주지원센터"],["012","성남세관"],["017","파주세관"],["011","파주세관 의정부지원센터"]]],["부산세관",[["030","부산세관"],["140","김해공항세관"],["033","양산세관"],["039","용당세관"],["037","용당세관 부산국제우편지원센터"],["053","창원세관"],["055","창원세관 진해지원센터"],["050","마산세관"],["051","경남남부세관"],["054","경남남부세관 통영지원센터"],["056","경남서부세관"],["052","경남서부세관 사천지원센터"]]],["인천세관",[["020","인천세관(인천항)"],["021","수원세관"],["014","안산세관"],["023","안산세관 부평지원센터"]]],["대구세관",[["120","대구세관"],["110","울산세관"],["121","구미세관"],["122","포항세관"]]],["광주세관",[["071","광주세관"],["062","광양세관"],["070","목포세관"],["072","목포세관 완도지원센터"],["060","여수세관"],["080","군산세관"],["084","군산세관 보령지원센터"],["090","제주세관"],["082","전주세관"],["081","전주세관 익산지원센터"]]],["평택세관",[["016","평택세관"],["154","평택세관 대산지원센터"]]]];
+(function(){
+  const hq = $('lcaHq'), cs = $('lcaCs');
+  hq.innerHTML = CUSTOMS.map((g, i) => `<option value="${i}">${esc(g[0])}</option>`).join('');
+  const fill = () => { cs.innerHTML = CUSTOMS[+hq.value][1].map(c => `<option value="${c[0]}">${esc(c[1])}</option>`).join(''); };
+  hq.addEventListener('change', fill); fill();
+})();
+let lcaRows = [], lcaShown = 50;
+function renderLca(){
+  const box = $('lcaListOut'); const f = ($('lcaFilter') ? $('lcaFilter').value : '').trim().replace(/\s+/g, '');
+  const rows = lcaRows.filter(r => !f || (r.lcaNm || '').replace(/\s+/g, '').includes(f));
+  const shown = rows.slice(0, lcaShown);
+  box.innerHTML = `<div class="row" style="margin:10px 0 6px"><div class="grow"><label for="lcaFilter">이름으로 걸러내기</label><input id="lcaFilter" style="width:100%" placeholder="관세사 이름의 일부" value="${esc($('lcaFilter') ? $('lcaFilter').value : '')}"></div></div>` +
+    `<div class="hint" style="margin:0 0 8px">${esc(lcaRows[0] ? lcaRows[0].cstmNm : '')} 관할 ${lcaRows.length}곳${f ? ' · 걸러낸 결과 ' + rows.length + '곳' : ''}</div>` +
+    `<div class="scroll"><table><thead><tr><th>관세사</th><th>부호</th><th></th></tr></thead><tbody>` +
+    shown.map(r => `<tr data-r="${esc(r.lcaSgn)}"><td>${esc(r.lcaNm)}</td><td>${esc(r.lcaSgn)}</td><td><button class="btn ghost" data-lca="${esc(r.lcaSgn)}" type="button">상세</button></td></tr>`).join('') + `</tbody></table></div>` +
+    (rows.length > shown.length ? `<div class="row" style="margin-top:8px"><button class="btn ghost" id="lcaMore" type="button">더 보기 (${rows.length - shown.length}곳 남음)</button></div>` : '');
+  const fi = $('lcaFilter'); if (fi){ fi.addEventListener('input', () => { lcaShown = 50; const pos = fi.selectionStart; renderLca(); const n = $('lcaFilter'); n.focus(); n.setSelectionRange(pos, pos); }); }
+  $('lcaMore')?.addEventListener('click', () => { lcaShown += 50; renderLca(); });
+}
+$('lcaList').addEventListener('click', async () => {
+  const out = $('lcaListOut'); const code = $('lcaCs').value;
+  out.innerHTML = '<div class="state">관세사 목록을 불러오는 중…</div>';
+  try {
+    const j = await uni('lcalist', {jrsdCstm: code});
+    lcaRows = (j.rows || []).slice().sort((a, b) => (a.lcaNm || '').localeCompare(b.lcaNm || '', 'ko'));
+    if (!lcaRows.length){ out.innerHTML = errBox('조회된 관세사가 없습니다.' + (j.ntce ? '\n' + j.ntce : '')); return; }
+    lcaShown = 50; renderLca();
+  } catch (e) { out.innerHTML = errBox(e.message); }
+});
+$('lcaListOut').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-lca]'); if (!b) return;
+  const tr = b.closest('tr'); const nxt = tr.nextElementSibling;
+  if (nxt && nxt.classList.contains('lcaDet')){ nxt.remove(); return; }   // 다시 누르면 접기
+  const det = document.createElement('tr'); det.className = 'lcaDet'; det.innerHTML = '<td colspan="3" class="hint">불러오는 중…</td>'; tr.after(det);
+  try {
+    const j = await uni('lca', {lcaSgn: b.dataset.lca});
+    const r = (j.rows || [])[0];
+    det.firstElementChild.innerHTML = r ? `${esc(r.jrsdCstmNm || '')}${r.rppnNm ? ' · 대표 ' + esc(r.rppnNm) : ''}<br>전화 ${esc(r.telNo || r.telno || '-')}<br>${esc(r.addr || '')}` : '상세 정보가 없습니다.' + (j.ntce ? ' (' + esc(j.ntce) + ')' : '');
+  } catch (err) { det.firstElementChild.innerHTML = esc(err.message); }
+});
 
 /* ================= 입력칸 ✕ 지우기 ================= */
 function addClear(id, onClear){
