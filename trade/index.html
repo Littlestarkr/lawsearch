@@ -379,7 +379,7 @@ async function customsRank(hs, from, to, isoList){
     if (rows.length) emptyAll = false;
     let tot = 0, exp = 0, imp = 0;
     const totalRow = rows.find(x => /총|합계|total/i.test(String(x.year || '')));
-    (totalRow ? [totalRow] : rows).forEach(x => { exp += num(x.expDlr); imp += num(x.impDlr); if (!name && x.statKor) name = x.statKor; });
+    (totalRow ? [totalRow] : rows).forEach(x => { exp += num(x.expDlr); imp += num(x.impDlr); if (!name && x.statKor && x.statKor !== '-') name = x.statKor; });
     rows.filter(x => x.hsCd && !/총|합계|total/i.test(String(x.year || ''))).forEach(x => {
       const h = byHs.get(x.hsCd) || {name: x.statKor || '', exp: 0}; h.exp += num(x.expDlr); byHs.set(x.hsCd, h);
     });
