@@ -427,10 +427,15 @@ function prepRank(){
   $('rkOut').innerHTML = '<div class="hint" style="text-align:center;padding:14px">조회 기간·단위를 확인한 뒤 <b>순위 보기</b>를 눌러 주세요.</div>';
   const p = $('p-rank'); if (p && p.scrollIntoView) p.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
+function prepWorld(){
+  $('wdOut').innerHTML = '<div class="hint" style="text-align:center;padding:14px">연도를 확인한 뒤 <b>시장 분석</b>을 눌러 주세요.</div>';
+  const p = $('p-world'); if (p && p.scrollIntoView) p.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
 function goAnalyze(code, tab){
   setHs(code); showTab(tab);
   if (tab === 'rank') return prepRank();
-  ({world: runWorld, trend: () => {}})[tab]();
+  if (tab === 'world') return prepWorld();
+  ({trend: () => {}})[tab]();
 }
 
 /* ---------- ① HS 찾기 ---------- */
