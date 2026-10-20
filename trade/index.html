@@ -702,7 +702,7 @@ async function runRank(){
 
   const box = (title, sub, items, total, err, note, cls) => `<div class="card"><h3>${title}</h3><div class="hint" style="margin:0 0 8px">${sub}</div>` +
     (err ? errBox(err) : note ? `<div class="state" style="padding:12px">${esc(note)}</div>` :
-      `<div class="okbox" style="margin:0 0 8px">조회합계 ${usd(total)} · 1위 ${esc(items[0].label)} ${pct(items[0].value / total * 100)}</div>` + hbars(items.slice(0, 15), cls)) + `</div>`;
+      `<div class="okbox" style="margin:0 0 8px">조회 합계 ${usd(total)} · 1위 ${esc(items[0].label)} ${pct(items[0].value / total * 100)}</div>` + hbars(items.slice(0, 15), cls)) + `</div>`;
   const cmItems = cmTop.map(([c, v]) => ({label: countryName(c, ref), value: v}));
   const cuItems = cuTop.map(([iso, v]) => ({label: (BY_ISO.get(iso) || [0, 0, iso])[2], value: v}));
   let html = `<div class="grid2">` +
