@@ -66,6 +66,10 @@ mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .filter{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0 12px}
 details>summary{cursor:pointer;font-weight:700;padding:8px 0}
 .score{font-size:12px;color:var(--sub)}
+.floatnav{position:fixed;left:16px;bottom:16px;z-index:900;display:flex;gap:8px}
+.floatnav button{font:inherit;font-size:14px;cursor:pointer;border:0;border-radius:24px;background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:11px 18px;font-weight:600}
+.floatnav .fn-top{background:var(--card);color:var(--brand);border:1px solid var(--line);width:42px;height:42px;padding:0}
+@media (max-width:768px){.floatnav{left:10px;bottom:10px}.floatnav button{font-size:13px;padding:10px 14px}.floatnav .fn-top{width:38px;height:38px}}
 .guide{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 16px;margin:0 0 14px;font-size:14px}
 .guide summary{cursor:pointer;font-weight:700;padding:8px 0;color:var(--brand)}
 .guide ul{margin:4px 0 10px;padding-left:20px}
@@ -741,6 +745,18 @@ $('save')?.addEventListener('click', () => {
 });
 const initQ = new URLSearchParams(location.search).get('q');
 if (initQ){ $('q').value = initQ; runSearch(initQ); }
+(function(){
+  const bar = document.createElement('div'); bar.className = 'floatnav';
+  bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
+  document.body.appendChild(bar);
+  bar.querySelector('.fn-back').addEventListener('click', () => {
+    let same = false;
+    try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+    if (same && history.length > 1) history.back();   // 무역통계 길잡이·홈페이지 등 직전 화면
+    else location.href = 'https://littlestarkr.github.io/export3/global-expansion.html#law';   // 직접 들어왔으면 홈페이지 글로벌 진출 페이지(법령 구역)로
+  });
+  bar.querySelector('.fn-top').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
+})();
 </script>
 </body>
 </html>
