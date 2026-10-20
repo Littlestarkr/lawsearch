@@ -15,7 +15,7 @@
 var CUSTOMS_URL = 'https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList';
 var ITEM_URLS = ['https://apis.data.go.kr/1220000/Itemtrade/getItemtradeList', 'https://apis.data.go.kr/1220000/itemtrade/getItemtradeList'];   // 품목별 수출입실적(국가 구분 없음)
 var NATION_URL = 'https://apis.data.go.kr/1220000/nationtrade/getNationtradeList';                                              // 국가별 수출입실적(품목 구분 없음)
-var CERT_URLS = ['https://apis.data.go.kr/b410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/B410001/overseasAuthInfo/getOverseasAuthInfo'];   // KOTRA 해외인증정보
+var CERT_URLS = ['https://apis.data.go.kr/B410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/b410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/B410001/OverseasAuthInfo/getOverseasAuthInfo'];   // KOTRA 해외인증정보
 var COMTRADE_URL = 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
 var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
@@ -123,6 +123,11 @@ function cert_(p) {
     } else {
       var j;
       try { j = JSON.parse(text); } catch (e) { return { error: '응답을 읽지 못했습니다.', raw: text.slice(0, 200) }; }
+      if (j.OpenAPI_ServiceResponse) {   // 게이트웨이 오류(서비스 없음·인증키 등)
+        var h = j.OpenAPI_ServiceResponse.cmmMsgHeader || {};
+        if (String(h.returnReasonCode) === '12' && i < CERT_URLS.length - 1) { last = { error: (h.errMsg || '') + ' ' + (h.returnAuthMsg || '') }; continue; }   // 주소 대소문자가 다를 때 다음 주소를 시도
+        return { error: (h.returnAuthMsg || h.errMsg || '게이트웨이 오류') + ' (코드 ' + (h.returnReasonCode || '?') + ')' };
+      }
       var resp = j.response || {};
       var code = resp.header && resp.header.resultCode;
       if (code && code !== '00') out = { error: (resp.header.resultMsg || code) };
