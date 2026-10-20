@@ -162,11 +162,19 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
       <div class="row">
         <div><label for="tdHs">HS코드</label><input id="tdHs" size="12" placeholder="예) 330499"></div>
         <div><label for="tdCty">상대국</label><select id="tdCty"></select></div>
-        <button class="btn" id="tdYear" type="button">연도별(UN Comtrade)</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div><label for="tdFrom">월별 기간(시작)</label><input id="tdFrom" type="month"></div>
+        <div><label for="tdTo">월별 기간(끝)</label><input id="tdTo" type="month"></div>
+        <div><label for="tdY1">연도별(시작)</label><select id="tdY1"></select></div>
+        <div><label for="tdY2">연도별(끝)</label><select id="tdY2"></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
         <button class="btn" id="tdMonth" type="button">월별(관세청)</button>
+        <button class="btn" id="tdYear" type="button">연도별(UN Comtrade)</button>
         <button class="btn ghost" id="tdWorld" type="button">전체 월별(세계 합계)</button>
       </div>
-      <p class="hint"><b>쓰는 법</b> ① HS코드를 넣고(②탭에서 고른 코드가 자동으로 들어옵니다) ② 수출 상대국을 고른 뒤 ③ 버튼을 누르세요. 한국에서 그 나라로 나간 이 품목의 수출액이 어떻게 변했는지 막대그래프로 보여 줍니다. 연도별은 최근 6개년의 연간 수출액(UN Comtrade), 월별은 ②탭에서 정한 12개월의 월별 수출액(관세청)입니다. "전체 월별"은 나라를 가리지 않고 이 품목의 세계 전체 월별 수출·수입액을 보여 줍니다. 늘고 있는지, 계절을 타는지 볼 때 쓰세요.</p>
+      <p class="hint"><b>쓰는 법</b> ① HS코드를 넣고(②탭에서 고른 코드가 자동으로 들어옵니다) ② 수출 상대국과 기간을 고른 뒤 ③ 버튼을 누르세요. 한국에서 그 나라로 나간 이 품목의 수출액이 어떻게 변했는지 막대그래프로 보여 줍니다. 연도별은 정한 연도 범위의 연간 수출액(UN Comtrade), 월별은 정한 기간(최대 60개월)의 월별 수출액(관세청)입니다. "전체 월별"은 나라를 가리지 않고 이 품목의 세계 전체 월별 수출·수입액을 보여 줍니다. 늘고 있는지, 계절을 타는지 볼 때 쓰세요.</p>
     </div>
     <div id="tdOut"></div>
   </section>
@@ -801,9 +809,9 @@ function vbars(items){
 $('tdYear').addEventListener('click', async () => {
   const out = $('tdOut'); const hs6 = cleanHs($('tdHs').value).slice(0, 6); const m49 = +$('tdCty').value;
   if (hs6.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
-  out.innerHTML = '<div class="state">최근 6개년 자료를 불러오는 중…</div>';
-  const y1 = new Date().getFullYear() - 1, years = [];
-  for (let y = y1 - 5; y <= y1; y++) years.push(y);
+  let ya = +$('tdY1').value, yb = +$('tdY2').value; if (ya > yb) [ya, yb] = [yb, ya];
+  out.innerHTML = `<div class="state">${ya}~${yb}년 자료를 불러오는 중…</div>`;
+  const years = []; for (let y = ya; y <= yb; y++) years.push(y);
   const res = await Promise.allSettled(years.map(y => comtrade({reporterCode: 410, partnerCode: m49, flowCode: 'X', cmdCode: hs6, period: y, ...CT_AGG})));
   const items = years.map((y, i) => {
     const r = res[i]; if (r.status !== 'fulfilled') return {label: String(y), value: 0, bad: r.reason.message};
@@ -812,24 +820,43 @@ $('tdYear').addEventListener('click', async () => {
   });
   const bad = items.find(i => i.bad);
   const name = (BY_M49.get(m49) || [0, 0, ''])[2];
-  const chg = items.length > 1 && items[items.length - 2].value ? (items[items.length - 1].value / items[items.length - 2].value - 1) * 100 : null;
   out.innerHTML = `<div class="card"><h3>한국 → ${esc(name)} · HS ${fmtHs(hs6)} 연도별 수출액 (UN Comtrade)</h3>` + vbars(items) +
-    (chg != null ? `<p class="hint">${items[items.length - 1].label}년은 전년 대비 ${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%</p>` : '') +
-    (bad ? errBox('일부 연도 조회 실패: ' + bad.bad) : '') + `<p class="hint">최신 연도는 자료가 비어 있으면 0으로 보입니다.</p></div>`;
+    `<div class="scroll" style="margin-top:12px"><table><thead><tr><th>연도</th><th class="r">수출액</th><th class="r">전년 대비</th></tr></thead><tbody>` +
+    items.map((it, i) => { const p = i ? items[i - 1].value : 0; return `<tr><td>${it.label}</td><td class="r">${usd(it.value)}</td><td class="r">${i && p ? (it.value / p - 1 >= 0 ? '+' : '') + ((it.value / p - 1) * 100).toFixed(1) + '%' : '-'}</td></tr>`; }).join('') + `</tbody></table></div>` +
+    (bad ? errBox('일부 연도 조회 실패: ' + bad.bad) : '') + `<p class="hint">UN Comtrade는 6자리 기준이며 최신 연도는 자료가 비어 있으면 0으로 보입니다.</p></div>`;
 });
+// 관세청은 1회 최대 12개월이라 긴 기간은 12개월씩 나누어 조회한다 (최대 60개월)
+function monthChunks(from, to){
+  let y = +from.slice(0, 4), m = +from.slice(4), ye = +to.slice(0, 4), me = +to.slice(4);
+  const f = n => String(n).padStart(2, '0'), out = [];
+  if (y * 12 + m > ye * 12 + me) { [y, m, ye, me] = [ye, me, y, m]; }
+  while ((y * 12 + m) <= (ye * 12 + me) && out.length < 5){
+    let y2 = y, m2 = m + 11; if (m2 > 12){ m2 -= 12; y2++; }
+    if (y2 * 12 + m2 > ye * 12 + me){ y2 = ye; m2 = me; }
+    out.push([y + f(m), y2 + f(m2)]);
+    m = m2 + 1; y = y2; if (m > 12){ m = 1; y++; }
+  }
+  return out;
+}
 $('tdMonth').addEventListener('click', async () => {
   const out = $('tdOut'); const hs0 = cleanHs($('tdHs').value); const hs = $('rkUnit').value === '10' && hs0.length === 10 ? hs0 : hs0.slice(0, 6); const iso = $('tdCty').selectedOptions[0].dataset.iso;
   if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
   if (!cfg.proxy){ out.innerHTML = errBox('월별 추이는 관세청 자료라 중계 서버 연결이 필요합니다.'); return; }
-  const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
+  const from = $('tdFrom').value.replace('-', ''), to = $('tdTo').value.replace('-', '');
+  if (!from || !to){ out.innerHTML = errBox('월별 기간을 입력하세요.'); return; }
   out.innerHTML = '<div class="state">관세청 월별 자료를 불러오는 중…</div>';
   try {
-    const r = await customsRank(hs, from, to, [iso]);
-    if (r.firstErr){ out.innerHTML = errBox('관세청 응답 오류: ' + r.firstErr); return; }
-    const rows = (r.map.get(iso) || {rows: []}).rows.filter(x => !/총|합계|total/i.test(String(x.year || '')));
+    let allRows = [];
+    for (const [a, b] of monthChunks(from, to)){
+      const r = await customsRank(hs, a, b, [iso]);
+      if (r.firstErr){ out.innerHTML = errBox('관세청 응답 오류: ' + r.firstErr); return; }
+      allRows = allRows.concat((r.map.get(iso) || {rows: []}).rows);
+    }
+    const rows = allRows.filter(x => !/총|합계|total/i.test(String(x.year || '')));
     const by = new Map(); rows.forEach(x => by.set(String(x.year), (by.get(String(x.year)) || 0) + num(x.expDlr)));
     const items = [...by].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({label: k.slice(2).replace('.', '/'), value: v}));
-    out.innerHTML = items.length ? `<div class="card"><h3>한국 → ${esc((BY_ISO.get(iso) || [0, 0, iso])[2])} · HS ${fmtHs(hs)} 월별 수출액 (관세청)</h3>${vbars(items)}</div>`
+    out.innerHTML = items.length ? `<div class="card"><h3>한국 → ${esc((BY_ISO.get(iso) || [0, 0, iso])[2])} · HS ${fmtHs(hs)} 월별 수출액 (관세청)</h3><div class="hint" style="margin:0 0 8px">${from.slice(0, 4)}.${from.slice(4)}~${to.slice(0, 4)}.${to.slice(4)}</div>${vbars(items)}` +
+      `<div class="scroll" style="margin-top:12px"><table><thead><tr><th>월</th><th class="r">수출액</th></tr></thead><tbody>${[...by].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r">${usd(v)}</td></tr>`).join('')}</tbody></table></div></div>`
       : errBox('월별 자료가 없습니다. (기간·HS코드 확인, 또는 관세청이 월별로 나누어 주지 않는 품목일 수 있습니다)');
   } catch (e) { out.innerHTML = errBox(e.message); }
 });
@@ -839,12 +866,17 @@ $('tdWorld').addEventListener('click', async () => {
   const out = $('tdOut'); const hs = cleanHs($('tdHs').value);
   if (hs.length < 4){ out.innerHTML = errBox('HS코드를 4자리 이상 입력하세요.'); return; }
   if (!cfg.proxy){ out.innerHTML = errBox('관세청 연동은 중계 서버가 연결되어야 합니다.'); return; }
-  const from = $('rkFrom').value.replace('-', ''), to = $('rkTo').value.replace('-', '');
+  const from = $('tdFrom').value.replace('-', ''), to = $('tdTo').value.replace('-', '');
+  if (!from || !to){ out.innerHTML = errBox('월별 기간을 입력하세요.'); return; }
   out.innerHTML = '<div class="state">관세청 품목별 월별 실적을 불러오는 중…</div>';
   try {
-    const j = await viaProxy('item', {hs, from, to});
-    if (j.error){ out.innerHTML = errBox('관세청 응답 오류: ' + j.error + (j.raw ? '\n서버 응답: ' + String(j.raw).replace(/\s+/g, ' ').slice(0, 250) : '')); return; }
-    if (j.code && j.code !== '00'){ out.innerHTML = errBox('관세청 응답: ' + (j.msg || j.code)); return; }
+    const j = {rows: []};
+    for (const [a, b] of monthChunks(from, to)){
+      const jj = await viaProxy('item', {hs, from: a, to: b});
+      if (jj.error){ out.innerHTML = errBox('관세청 응답 오류: ' + jj.error + (jj.raw ? '\n서버 응답: ' + String(jj.raw).replace(/\s+/g, ' ').slice(0, 250) : '')); return; }
+      if (jj.code && jj.code !== '00'){ out.innerHTML = errBox('관세청 응답: ' + (jj.msg || jj.code)); return; }
+      j.rows = j.rows.concat(jj.rows || []);
+    }
     const by = new Map(); let name = '';
     (j.rows || []).forEach(x => {
       const y = String(x.year || ''); if (!/^\d{4}\.\d{2}$/.test(y)) return;
@@ -975,10 +1007,12 @@ $('rkReset').addEventListener('click', () => {
 (function init(){
   const now = new Date(), y = now.getFullYear();
   const ys = []; for (let i = y - 1; i >= y - 8; i--) ys.push(i);
+  const yo = d => { const a = []; for (let i = y - 1; i >= y - 15; i--) a.push(`<option${i === d ? ' selected' : ''}>${i}</option>`); return a.join(''); };
+  $('tdY1').innerHTML = yo(y - 6); $('tdY2').innerHTML = yo(y - 1);
   ['rkYear', 'wdYear'].forEach(id => $(id).innerHTML = ys.map(v => `<option${v === y - 2 ? ' selected' : ''}>${v}</option>`).join(''));
   const pm = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   const end = new Date(y, now.getMonth() - 1, 1), start = new Date(y, now.getMonth() - 12, 1);
-  $('rkTo').value = pm(end); $('rkFrom').value = pm(start); $('ctTo').value = pm(end); $('ctFrom').value = pm(start);
+  $('rkTo').value = pm(end); $('rkFrom').value = pm(start); $('tdTo').value = pm(end); $('tdFrom').value = pm(start); $('ctTo').value = pm(end); $('ctFrom').value = pm(start);
   $('fxDate').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   $('tdCty').innerHTML = COUNTRIES.map(c => `<option value="${c[1]}" data-iso="${c[0]}">${c[2]}</option>`).join('');
   window.RK_DEF = {yearIdx: $('rkYear').selectedIndex, from: $('rkFrom').value, to: $('rkTo').value};
