@@ -160,7 +160,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12.5px}
         <button class="btn" id="tdYear" type="button">연도별(UN Comtrade)</button>
         <button class="btn" id="tdMonth" type="button">월별(관세청)</button>
       </div>
-      <p class="hint">한국 → 선택한 나라 수출액의 변화입니다. 연도별은 최근 6개년, 월별은 위 ②탭에서 정한 12개월 기간을 씁니다.</p>
+      <p class="hint"><b>쓰는 법</b> ① HS코드를 넣고(②탭에서 고른 코드가 자동으로 들어옵니다) ② 수출 상대국을 고른 뒤 ③ 버튼을 누르세요. 한국에서 그 나라로 나간 이 품목의 수출액이 어떻게 변했는지 막대그래프로 보여 줍니다. 연도별은 최근 6개년의 연간 수출액(UN Comtrade), 월별은 ②탭에서 정한 12개월의 월별 수출액(관세청)입니다. 늘고 있는지, 계절을 타는지 볼 때 쓰세요.</p>
     </div>
     <div id="tdOut"></div>
   </section>
@@ -419,7 +419,7 @@ const fmtHs = c => c.length === 6 ? c.slice(0, 4) + '.' + c.slice(4) : c.length 
 function hsRows(items){
   return `<div class="card scroll"><table><thead><tr><th>HS코드</th><th>품목</th><th></th></tr></thead><tbody>` +
     items.map(it => `<tr><td><b>${fmtHs(it.code)}</b></td><td>${esc(it.ko || '')}${it.ko && it.en ? '<br>' : ''}<span style="color:var(--sub);font-size:12.5px">${esc(it.en || '')}</span></td>` +
-      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}${it.code.length === 6 && cfg.proxy ? ` <button class="btn ghost" data-a="detail" data-c="${it.code}">10자리 세부 품목</button>` : ''}</td></tr>`).join('') +
+      `<td style="white-space:nowrap">${it.code.length >= 4 ? `<button class="btn ghost" data-a="rank" data-c="${it.code}">수출 순위</button> <button class="btn ghost" data-a="world" data-c="${it.code}">세계 시장</button>` : ''}${it.code.length === 6 && cfg.proxy ? ` <button class="btn ghost" data-a="detail" data-c="${it.code}">이 분류의 10자리 전체 보기</button>` : ''}</td></tr>`).join('') +
     `</tbody></table></div>`;
 }
 async function runHs(){
