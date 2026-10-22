@@ -16,6 +16,7 @@ var CUSTOMS_URL = 'https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList'
 var ITEM_URLS = ['https://apis.data.go.kr/1220000/Itemtrade/getItemtradeList', 'https://apis.data.go.kr/1220000/itemtrade/getItemtradeList'];   // 품목별 수출입실적(국가 구분 없음)
 var NATION_URL = 'https://apis.data.go.kr/1220000/nationtrade/getNationtradeList';                                              // 국가별 수출입실적(품목 구분 없음)
 var CERT_URLS = ['https://apis.data.go.kr/B410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/b410001/overseasAuthInfo/getOverseasAuthInfo', 'https://apis.data.go.kr/B410001/OverseasAuthInfo/getOverseasAuthInfo'];   // KOTRA 해외인증정보
+var BUYER_URL = 'https://apis.data.go.kr/B552696/buyer';   // 한국무역보험공사 바이어 검색
 var COMTRADE_URL = 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
 var REF_BASE = 'https://comtradeapi.un.org/files/v1/app/reference/';
 var COMTRADE_PARAMS = ['reporterCode', 'partnerCode', 'partner2Code', 'cmdCode', 'flowCode', 'period', 'motCode', 'customsCode', 'maxRecords'];
@@ -38,6 +39,7 @@ function doGet(e) {
     if (p.a === 'customs') out = customs_(p);
     else if (p.a === 'item') out = item_(p);
     else if (p.a === 'cert') out = cert_(p);
+    else if (p.a === 'buyer') out = buyer_(p);
     else if (p.a === 'nation') out = nation_(p);
     else if (p.a === 'comtrade') out = comtrade_(p);
     else if (p.a === 'ref') out = ref_(p);
@@ -143,6 +145,54 @@ function cert_(p) {
     return out;
   }
   return last;
+}
+
+/* ---------- 한국무역보험공사 바이어 검색 ---------- */
+function buyer_(p) {
+  var key = prop_('DATA_GO_KEY');
+  if (!key) return { error: '스크립트 속성 DATA_GO_KEY(공공데이터포털 인증키)가 없습니다.' };
+  var k = key.indexOf('%') >= 0 ? key : encodeURIComponent(key);
+  var ctry = String(p.ctryCd || '').replace(/\D/g, '').slice(0, 5);
+  if (!ctry) return { error: '국가를 선택하세요.' };
+  var qs = '&ctryCd=' + ctry;
+  var ind = String(p.industryCd || '').replace(/\D/g, '').slice(0, 6);
+  if (ind) qs += '&industryCd=' + ind;
+  var prod = String(p.prodNm || '').slice(0, 60);
+  if (prod) qs += '&prodNm=' + encodeURIComponent(prod);
+  var bn = String(p.buyerNm || '').slice(0, 60);
+  if (bn) qs += '&buyerNm=' + encodeURIComponent(bn);
+  var page = Math.max(1, Math.min(500, parseInt(p.pageNo, 10) || 1));
+  var rows = Math.max(1, Math.min(100, parseInt(p.numOfRows, 10) || 50));
+  qs += '&pageNo=' + page + '&numOfRows=' + rows;
+  var cache = CacheService.getScriptCache();
+  var ck = 'b' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, qs)).slice(0, 40);
+  var hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var r = UrlFetchApp.fetch(BUYER_URL + '?serviceKey=' + k + '&type=json' + qs, { muteHttpExceptions: true });
+  var text = r.getContentText();
+  if (text.charAt(0) === '<') {   // 인증키 오류 등은 XML로 온다
+    var pe = parseCustoms_(text, r.getResponseCode());
+    return { error: pe.error || pe.msg || '응답을 읽지 못했습니다.', raw: pe.raw };
+  }
+  var j;
+  try { j = JSON.parse(text); } catch (e) { return { error: '응답을 읽지 못했습니다. (HTTP ' + r.getResponseCode() + ')', raw: text.slice(0, 200) }; }
+  if (j.OpenAPI_ServiceResponse) {
+    var h = j.OpenAPI_ServiceResponse.cmmMsgHeader || {};
+    return { error: (h.returnAuthMsg || h.errMsg || '게이트웨이 오류') + ' (코드 ' + (h.returnReasonCode || '?') + ')' };
+  }
+  var resp = j.response || j;
+  var hd = resp.header || {};
+  if (hd.resultCode && String(hd.resultCode) !== '00' && String(hd.resultCode) !== '0') return { error: (hd.resultMsg || hd.resultCode) + ' (코드 ' + hd.resultCode + ')', rawHead: text.slice(0, 300) };
+  var body = resp.body || resp;
+  var it = body.items;
+  if (it && !Array.isArray(it) && typeof it === 'object') it = it.item || it.items || it;
+  if (!it && body.item) it = body.item;
+  var items = !it ? [] : (Array.isArray(it) ? it : (typeof it === 'object' && Object.keys(it).length ? [it] : []));
+  var total = parseInt(body.totalCount || body.totalCnt || body.total, 10);
+  var out = { total: isNaN(total) ? items.length : total, page: page, items: items };
+  if (!items.length) out.rawHead = text.slice(0, 400);
+  if (items.length) { try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {} }
+  return out;
 }
 
 /* ---------- 관세청 품목별(국가 합계) ---------- */

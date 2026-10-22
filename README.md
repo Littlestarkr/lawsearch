@@ -15,3 +15,6 @@
 
 ## cert/ — HappyOh 해외인증 길잡이
 KOTRA 해외인증정보(공공데이터포털 `B410001/overseasAuthInfo/getOverseasAuthInfo`)를 품목명·인증제도명·HS코드(6자리)로 찾는다. 중계 서버 `proxy.gs`의 `a=cert`를 거치며 인증키는 `DATA_GO_KEY`를 함께 쓴다. 국가 검색 변수는 없어서 결과를 받은 뒤 국가별로 거른다. 이용허락범위가 공공누리 제4유형(출처표시·상업적 이용금지·변경금지)이므로 원문을 고치지 않고 출처를 표시한다. 무역통계 길잡이 ①탭의 [해외인증] 버튼이 `?hs=`로 연결한다.
+
+## buyer/ — HappyOh 바이어 검색 길잡이
+한국무역보험공사 「바이어 검색」(공공데이터포털, `apis.data.go.kr/B552696/buyer`)을 국가(필수)·업종(1~4단계)·품목명·바이어명으로 조회합니다. 국가·업종 코드는 `codes.json`(무보 코드집 xlsx에서 변환). `trade/proxy.gs`의 `buyer` 동작(`DATA_GO_KEY` 사용)을 거칩니다. 요청 변수: `ctryCd`, `industryCd`, `prodNm`, `buyerNm`, `pageNo`, `numOfRows`. 응답 필드 이름은 패턴으로 찾으며, 화면의 '응답 항목 전체 보기'로 원문을 확인할 수 있습니다.
