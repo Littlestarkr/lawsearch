@@ -188,7 +188,7 @@ const industryCode = () => $('i4').value || $('i3').value || $('i2').value || $(
 /* ---------- 결과 표시 ---------- */
 // 응답 필드 이름이 문서와 다를 수 있어, 이름 패턴으로 찾는다
 const pick = (x, re) => { const k = Object.keys(x).find(k => re.test(k)); return k ? x[k] : ''; };
-const LABELS = {buyerNm: '바이어명', buyerNo: '바이어번호', ctryCd: '국가코드', ctryNm: '국가명', industryNm: '업종명', industryCd: '업종코드', prodNm: '품목명'};
+const LABELS = {buyerNm: '바이어명', trgtpsnNo: '바이어번호', buyerNo: '바이어번호', ctryCd: '국가코드', ctryNm: '국가명', industryNm: '업종명', industryCd: '업종코드', prodNm: '품목명'};
 const fmtVal = v => (v && typeof v === 'object') ? JSON.stringify(v) : String(v ?? '');
 function render(){
   const out = $('out');
