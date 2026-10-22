@@ -194,14 +194,16 @@ function render(){
   const out = $('out');
   const items = state.items;
   out.innerHTML = `<div class="card"><h3>바이어 목록 <span class="tag ok">${state.total}건</span></h3>` +
-    `<div class="hint" style="margin:0 0 8px">${esc(state.label)} · ${state.items.length}건을 불러왔습니다.</div>` +
+    `<div class="hint" style="margin:0 0 8px">${esc(state.label)} · ${state.items.length}건을 불러왔습니다. 바이어명을 누르면 K-SIGHT의 상세 정보(국가등급, 바이어 기본 정보 등)가 새 탭으로 열립니다.</div>` +
     `<div class="scroll"><table><thead><tr><th>바이어명</th><th>국가</th><th>업종</th><th>품목</th><th>번호</th></tr></thead><tbody>` +
     items.map((x, i) => {
       const nm = pick(x, /buyer(nm|name)/i) || pick(x, /nm$/i), ct = pick(x, /ctry.*nm|nation|country/i), ind = pick(x, /industry.*nm|induty.*nm|upjong/i), pr = pick(x, /prod.*nm|item.*nm/i), no = pick(x, /buyer.*(no|id)|trgt|object/i);
-      return `<tr><td class="nm">${esc(nm)}</td><td>${esc(ct)}</td><td>${esc(ind)}</td><td>${esc(pr)}</td><td>${esc(no)}</td></tr>`;
+      const link = no ? `<a href="https://ksight.ksure.or.kr/find-buyer/detail?trgtpsnNo=${encodeURIComponent(no)}" target="_blank" rel="noopener" style="color:var(--brand)">${esc(nm)}</a>` : esc(nm);
+      return `<tr><td class="nm">${link}</td><td style="white-space:nowrap">${esc(ct)}</td><td>${esc(ind)}</td><td>${esc(pr)}</td><td style="white-space:nowrap">${esc(no)}</td></tr>`;
     }).join('') + `</tbody></table></div>` +
     (items.length ? `<details class="guide" style="margin-top:10px"><summary>응답 항목 전체 보기 (첫 3건)</summary><pre style="white-space:pre-wrap;font-size:12px;overflow-x:auto">${esc(JSON.stringify(items.slice(0, 3), null, 1))}</pre></details>` : '') +
     `<div class="row" style="margin-top:10px">` +
+    `<a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="https://ksight.ksure.or.kr/find-buyer?nationNm=${encodeURIComponent(state.name || '')}&trgtpsnNm=${encodeURIComponent((state.q && state.q.buyerNm) || '')}">K-SIGHT에서 같은 조건으로 보기</a>` +
     (state.items.length < state.total ? `<button class="btn ghost" id="more" type="button">더 불러오기 (${state.total - state.items.length}건 남음)</button>` : '') +
     `<button class="btn ghost" id="csv" type="button">CSV로 저장</button></div></div>`;
   $('more')?.addEventListener('click', () => load(state.page + 1));
