@@ -71,6 +71,11 @@ mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .ai-text{width:100%;box-sizing:border-box;min-height:220px;margin:10px 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.55;font-family:inherit}
 .ai-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ai-row .score{margin-left:4px}
+.rank{display:inline-block;min-width:34px;text-align:center;background:var(--brand);color:var(--brand-ink);border-radius:6px;padding:0 6px;margin-right:8px;font-size:12.5px;vertical-align:1px}
+.art .why{font-size:12.5px;color:var(--sub);margin:-2px 0 6px}
+.more-arts{margin:6px 0 14px}
+.more-arts summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:14px;padding:6px 0}
+.state.miss{padding:10px 12px;text-align:left;background:var(--warn);border:1px solid var(--warn-line);border-radius:10px;color:var(--ink);font-size:13.5px;margin-bottom:10px}
 .filter{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0 12px}
 details>summary{cursor:pointer;font-weight:700;padding:8px 0}
 .score{font-size:12px;color:var(--sub)}
@@ -182,7 +187,8 @@ const TOPICS = [
  {n:'관세·FTA·원산지', k:['관세','fta','에프티에이','원산지','특혜','품목분류','관세사','관세환급','환급','세관','관세청','통관 비용','수입 신고','관세 감면'], laws:['관세법','자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','대외무역법'], t:['원산지','관세','자유무역협정','원산지증명서','환급'], arts:[['자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','제11조','원산지증명']]},
  {n:'외환·해외송금', k:['외환','환율','해외송금','외국환','외화','해외직접투자','송금','달러','해외 입금','해외 계좌','외화 입금','외국에서 돈'], laws:['외국환거래법','외국인투자 촉진법'], t:['외국환','신고','해외직접투자','송금'], arts:[['외국환거래법','제18조','자본거래']]},
  {n:'해외진출·외국인투자', k:['해외진출','해외지사','해외법인','외국인투자','현지법인','수출바우처','해외시장','해외 진출'], laws:['외국환거래법','외국인투자 촉진법','대외무역법','중소기업진흥에 관한 법률'], t:['해외직접투자','외국인투자','신고'], all:[[['중국','베트남','미국','일본','인도','인도네시아','태국','말레이시아','필리핀','싱가포르','대만','홍콩','멕시코','브라질','독일','영국','프랑스','캐나다','호주','러시아','우즈베키스탄','카자흐스탄','몽골','두바이','사우디','아랍에미리트','튀르키예','터키','폴란드','헝가리','해외','현지','외국'],['법인','지사','지점','사무소','공장','자회사'],['세우','설립','만들','차리','진출','투자','내려','열려','열고']]], arts:[['외국환거래법','제18조','자본거래']]},
- {n:'공공조달·입찰', k:['조달','입찰','공공계약','나라장터','낙찰','적격심사','계약보증','수의계약','공공기관 계약','관공서','공공기관 납품','학교 납품','제안서','조달청','입찰 참가','사업 수주','우선구매','직접생산','공공 납품'], laws:['국가를 당사자로 하는 계약에 관한 법률','조달사업에 관한 법률','지방자치단체를 당사자로 하는 계약에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['입찰','계약','낙찰','적격심사','수의계약','참가자격'], arts:[['국가를 당사자로 하는 계약에 관한 법률','제27조','입찰']]},
+ {n:'직접생산확인·공공구매', k:['직접생산','직접생산확인','직접생산 확인','경쟁제품','중소기업자간 경쟁제품','공공구매','우선구매','구매촉진','판로지원'], laws:['중소기업제품 구매촉진 및 판로지원에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령'], t:['직접생산','경쟁제품','확인','구매'], arts:[['중소기업제품 구매촉진 및 판로지원에 관한 법률','제9조','직접생산'],['중소기업제품 구매촉진 및 판로지원에 관한 법률','제11조','직접생산'],['중소기업제품 구매촉진 및 판로지원에 관한 법률','제6조','경쟁제품']]},
+ {n:'공공조달·입찰', k:['조달','입찰','공공계약','나라장터','낙찰','적격심사','계약보증','수의계약','공공기관 계약','관공서','공공기관 납품','학교 납품','제안서','조달청','입찰 참가','사업 수주','공공 납품'], laws:['국가를 당사자로 하는 계약에 관한 법률','조달사업에 관한 법률','지방자치단체를 당사자로 하는 계약에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['입찰','계약','낙찰','적격심사','수의계약','참가자격'], arts:[['국가를 당사자로 하는 계약에 관한 법률','제27조','입찰']]},
  {n:'하도급·납품대금', k:['하도급','수급사업자','원사업자','납품단가','납품대금','대금 지급','기술탈취','연동제','대금','대금 못','대금을 안','돈을 안 줘','어음','단가 인하','후려치','떼였','미수금','납품 대금'], laws:['하도급거래 공정화에 관한 법률','대ㆍ중소기업 상생협력 촉진에 관한 법률'], t:['하도급대금','60일','납품','부당'], not:['신용장','l/c','바이어','수입자','수입상','수출대금','수출 대금'], arts:[['하도급거래 공정화에 관한 법률','제13조','하도급대금'],['하도급거래 공정화에 관한 법률','제12조의3','기술자료']]},
  {n:'공정거래·불공정', k:['공정거래','독점','담합','불공정','시장지배','끼워팔기','우월적'], laws:['독점규제 및 공정거래에 관한 법률'], t:['불공정거래행위','담합','부당한']},
  {n:'가맹사업', k:['가맹','프랜차이즈','가맹점','가맹본부'], laws:['가맹사업거래의 공정화에 관한 법률'], t:['가맹','정보공개서','가맹금','계약갱신요구']},
@@ -365,6 +371,7 @@ let currentQuery = '';
 let currentResults = [];
 let currentExt = [];     // 국내 법령보다 국제 규칙이 기준인 주제의 안내 링크
 let currentLegal = [];   // 법제처 일상용어 → 법령용어 결과 [{w, terms}]
+let currentUserTerms = new Set();   // 질문에 직접 쓴 말 (조문 순위에서 가장 크게 친다)
 
 async function runSearch(raw){
   const q = raw.trim();
@@ -414,6 +421,10 @@ async function runSearch(raw){
     legal.forEach(t => currentTerms.set(t, 3));
   }
   const nameTerms = (strong.length ? hits : toks).slice(0, 2);
+  // 질문에 직접 쓴 말: 구체적인 낱말 + 질문에 그대로 들어 있는 주제어
+  const qn0 = norm(q).toLowerCase();
+  currentUserTerms = new Set([...specific, ...hits.filter(h => qn0.includes(norm(h).toLowerCase()))].filter(t => norm(t).length >= 2));
+  currentUserTerms.forEach(t => { if (!currentTerms.has(t)) currentTerms.set(t, 4); });
 
   const jobs = [];
   const names = [...new Set(strong.flatMap(x => x.tp.laws))].slice(0, 8);
@@ -475,7 +486,7 @@ async function runSearch(raw){
 
 async function runExact(phrases){
   currentTerms = new Map(phrases.map(p => [p, 5]));
-  currentArts = []; currentExt = []; currentLegal = [];
+  currentArts = []; currentExt = []; currentLegal = []; currentUserTerms = new Set(phrases);
   const settled = await Promise.allSettled(KIND_LIST.flatMap(k => phrases.map(async p => ({
     k, p, name: await searchKind(k, p, 1, '100'), body: await searchKind(k, p, 2, '100')
   }))));
@@ -706,15 +717,42 @@ function extractArticles(kind, data){
   return toArray(data?.법령?.조문?.조문단위).map(parseArticle).filter(a => a.lines.length);
 }
 
-function scoreArticle(art, terms){
-  if (art.isHeading) return 0;
-  let s = 0;
-  for (const [t, w] of terms){
-    const cnt = art.text.split(t).length - 1;
-    if (cnt) s += w * Math.min(cnt, 3);
-    if (art.title && art.title.includes(t)) s += 5;
-  }
-  return s;
+/* 조문 순위: 낱말마다 (질문에 직접 쓴 말인지) × (이 법령 안에서 얼마나 드문 말인지)로 점수를 매긴다.
+   '계약'처럼 이 법령의 거의 모든 조문에 나오는 말은 점수가 거의 없고, 조문 제목에 나오면 크게 더한다. */
+function termWeight(t){
+  if (currentUserTerms.has(t)) return 3;
+  const w = currentTerms.get(t) || 1;
+  return w >= 4 ? 3 : w === 3 ? 1.5 : 1;
+}
+function rankArticles(arts){
+  const body = arts.map(a => a.isHeading ? '' : norm(a.text).toLowerCase());
+  const head = arts.map(a => a.isHeading ? '' : norm(a.title + ' ' + a.head).toLowerCase());
+  const N = arts.filter(a => !a.isHeading).length || 1;
+  const seen = new Map();   // '직접생산 확인'과 '직접생산확인'처럼 띄어쓰기만 다른 말은 하나로 (무게는 큰 쪽)
+  [...currentTerms.keys()].forEach(t => {
+    const n = norm(t).toLowerCase(), w = termWeight(t);
+    if (n.length >= 2 && (!seen.has(n) || seen.get(n).w < w)) seen.set(n, {t, n, w});
+  });
+  const terms = [...seen.values()].sort((a, b) => b.n.length - a.n.length);
+  terms.forEach(x => {
+    const df = body.filter(b => b.includes(x.n)).length;
+    x.idf = Math.max(Math.log((N + 1) / (df + 0.5)), 0.05);
+  });
+  return arts.map((a, i) => {
+    if (a.isHeading) return {a, s: 0, why: [], user: 0};
+    let sc = 0, user = 0; const why = [];
+    for (const x of terms){
+      const inHead = head[i].includes(x.n);
+      const cnt = body[i].split(x.n).length - 1;
+      if (!cnt && !inHead) continue;
+      sc += x.w * x.idf * ((inHead ? 3 : 0) + (cnt ? 1 + Math.log(cnt) : 0));
+      if (x.w === 3) user++;
+      if (!terms.some(y => y !== x && y.n.length > x.n.length && y.n.includes(x.n) && (head[i].includes(y.n) || body[i].includes(y.n))))
+        why.push(inHead ? `제목 '${x.t}'` : `'${x.t}' ${cnt}회`);   // 더 긴 말로 이미 맞은 짧은 말은 근거에서 뺀다
+    }
+    if (user > 1) sc *= 1 + 0.3 * (user - 1);   // 질문 낱말이 여럿 함께 나오면 더 관련 깊다
+    return {a, s: sc, why, user};
+  });
 }
 
 function highlighter(terms){
@@ -730,16 +768,24 @@ const artLink = (art, law) => art.no ? `https://www.law.go.kr/${KINDS[law.kind |
 // 조문 고르기: 주제의 대표 조문(번호와 제목이 모두 맞을 때만) + 핵심어 일치 순
 function pickArticles(law, arts, limit){
   if (currentExact.length){
-    return {pins: [], ranked: arts.filter(a => !a.isHeading && currentExact.every(p => norm(a.text).includes(norm(p)))).slice(0, limit)};
+    return {pins: [], ranked: arts.filter(a => !a.isHeading && currentExact.every(p => norm(a.text).includes(norm(p)))).slice(0, limit), info: new Map(), userMiss: []};
   }
   const pins = [];
   currentArts.filter(p => norm(p[0]) === norm(law.name)).forEach(p => {
     const a = arts.find(x => !x.isHeading && x.no === p[1] && (x.title + ' ' + x.head).includes(p[2]));
     if (a && !pins.includes(a)) pins.push(a);
   });
-  const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)}))
-    .filter(x => x.s > 0 && !pins.includes(x.a)).sort((x, y) => y.s - x.s).slice(0, limit).map(x => x.a);
-  return {pins, ranked};
+  const scored = rankArticles(arts);
+  const info = new Map(scored.map(x => [x.a, x]));
+  // 대표 조문은 따로 맨 위에 두지 않고 점수를 더해 함께 줄 세운다 (질문 낱말이 든 조문이 앞에 오도록)
+  const top0 = Math.max(0, ...scored.map(x => x.s));
+  scored.forEach(x => { const k = pins.indexOf(x.a); if (k >= 0){ x.s += Math.max(top0 * (0.6 - 0.1 * Math.min(k, 3)), 1); x.why.unshift('대표 조문'); } });
+  const cand = scored.filter(x => x.s > 0).sort((x, y) => y.s - x.s);
+  const top = cand[0]?.s || 0;
+  const ranked = cand.filter(x => x.s >= top * 0.2).slice(0, limit).map(x => x.a);   // 1위의 20%도 안 되는 조문은 뺀다
+  // 질문에 직접 쓴 말이 이 법령 어디에도 없으면 알린다
+  const userMiss = [...currentUserTerms].filter(t => norm(t).length >= 2 && !arts.some(a => norm(a.text).toLowerCase().includes(norm(t).toLowerCase())));
+  return {pins: [], ranked, info, userMiss};   // pins는 ranked 안에 점수로 합쳤다
 }
 
 /* ---------- AI 질문용 글 (프롬프트 복사형) ----------
@@ -805,10 +851,11 @@ async function makeAiPrompt(){
   });
 }
 
-function artHtml(art, law, hl, withScore){
+function artHtml(art, law, hl, rank, why){
   const link = artLink(art, law);
   return `<div class="art">
-    <div class="ah"><b>${esc(art.head || '조문')}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">원문 ↗</a>` : ''}</div>
+    <div class="ah"><b>${rank ? `<span class="rank">${esc(rank)}</span>` : ''}${esc(art.head || '조문')}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">원문 ↗</a>` : ''}</div>
+    ${why ? `<div class="why">근거: ${esc(why)}</div>` : ''}
     ${art.lines.map((x, i) => {
       if (i === 0 && art.head) { const rest = x.t.slice(art.head.length).trim(); return rest ? `<div class="ln l1">${hl(rest)}</div>` : ''; }
       return `<div class="ln l${Math.max(x.l,1)}">${hl(x.t)}</div>`;
@@ -840,7 +887,7 @@ async function openLaw(l){
   if (!arts.length){ $('vb').innerHTML = '<div class="state">이 규정은 조문 형식으로 제공되지 않습니다. 위의 원문 링크를 이용하세요.</div>'; return; }
 
   const hl = highlighter(currentTerms.keys());
-  const {pins, ranked} = pickArticles(law, arts, 6);
+  const {pins, ranked, info, userMiss} = pickArticles(law, arts, 10);
 
   let html = '';
   if (currentExact.length){
@@ -850,8 +897,14 @@ async function openLaw(l){
         (hitsA.length > 30 ? '<div class="state">30개까지만 표시합니다. 아래 전체 조문에서 더 찾아보세요.</div>' : '')
       : '<div class="state">이 법령의 조문 중 따옴표로 지정한 말이 모두 들어간 곳이 없습니다. 말이 여러 조문에 나뉘어 있거나 띄어쓰기가 다를 수 있습니다.</div>';
   } else if (pins.length || ranked.length){
-    if (pins.length) html += `<div class="sec">먼저 볼 대표 조문 <span class="score">(이 상황에서 자주 찾는 조문)</span></div>` + pins.map(a => artHtml(a, law, hl)).join('');
-    if (ranked.length) html += `<div class="sec">질문과 관련 깊은 조문 <span class="score">(핵심어 일치 순)</span></div>` + ranked.map(a => artHtml(a, law, hl)).join('');
+    if (userMiss.length) html += `<div class="state miss">이 법령에는 '${userMiss.map(esc).join("', '")}'이(가) 들어간 조문이 없습니다. 아래는 주제 핵심어로 고른 조문이니, 다른 법령도 열어 보세요.</div>`;
+    const list = ranked.map(a => ({a, why: info.get(a)?.why || []}));
+    const SHOW = 4;
+    const item = (x, i) => artHtml(x.a, law, hl, `${i + 1}위`, x.why.slice(0, 4).join(' · '));
+    html += `<div class="sec">관련 조문 순위 <span class="score">(질문에 쓴 말·조문 제목·이 법령에서 드문 말일수록 위로)</span></div>` +
+      list.slice(0, SHOW).map(item).join('');
+    if (list.length > SHOW) html += `<details class="more-arts"><summary>${SHOW + 1}위부터 ${list.length - SHOW}개 더 보기</summary>` +
+      list.slice(SHOW).map((x, i) => item(x, i + SHOW)).join('') + '</details>';
   } else if (currentTerms.size){
     html += `<div class="state">입력하신 핵심어와 직접 일치하는 조문을 찾지 못했습니다. 아래 전체 조문에서 찾아 보세요.</div>`;
   }
