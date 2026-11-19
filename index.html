@@ -63,6 +63,14 @@ dialog::backdrop{background:rgba(10,16,24,.55)}
 .heading{font-weight:700;color:var(--brand);margin:18px 0 8px;font-size:14px}
 mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .sec{margin:18px 0 8px;font-weight:700;font-size:15px}
+.understood a{color:var(--brand);font-weight:600}
+.ai-box{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ai-box .sec{margin-top:0}
+.ai-box p{margin:0 0 10px;font-size:14px}
+.ai-warn{background:var(--warn);border:1px solid var(--warn-line);border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:12px}
+.ai-text{width:100%;box-sizing:border-box;min-height:220px;margin:10px 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.55;font-family:inherit}
+.ai-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ai-row .score{margin-left:4px}
 .filter{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin:8px 0 12px}
 details>summary{cursor:pointer;font-weight:700;padding:8px 0}
 .score{font-size:12px;color:var(--sub)}
@@ -153,29 +161,29 @@ const norm = s => String(s).replace(/\s+/g, '').replace(/[·ㆍ‧]/g, '·');
 /* ---------- 상황 → 법령 연결 사전 ---------- */
 /* k: 상황을 알아보는 말, laws: 같이 볼 법령, t: 조문에서 찾을 핵심어 */
 const TOPICS = [
- {n:'퇴직금·퇴직연금', k:['퇴직금','퇴직연금','퇴직급여','중간정산','퇴사','퇴직','사직','그만뒀','그만두','관뒀'], laws:['근로자퇴직급여 보장법','근로기준법'], t:['퇴직금','퇴직급여','14일','지급']},
- {n:'해고·권고사직', k:['해고','잘리','권고사직','부당해고','해고예고','정리해고','해직','짤리','쫓겨','내보내','계약만료','갱신거절','일방적','해고통보'], laws:['근로기준법'], t:['해고','해고의 예고','정당한 이유','30일']},
- {n:'임금·체불·최저임금', k:['임금','월급','체불','최저임금','통상임금','주휴','급여','못 받','밀린','밀렸','알바','시급','아르바이트','수당','상여','보너스','돈 안','안 줘'], laws:['근로기준법','최저임금법','임금채권보장법'], t:['임금','체불','최저임금','지급']},
+ {n:'퇴직금·퇴직연금', k:['퇴직금','퇴직연금','퇴직급여','중간정산','퇴사','퇴직','사직','그만뒀','그만두','관뒀'], laws:['근로자퇴직급여 보장법','근로기준법'], t:['퇴직금','퇴직급여','14일','지급'], arts:[['근로자퇴직급여 보장법','제8조','퇴직금'],['근로자퇴직급여 보장법','제9조','퇴직금']]},
+ {n:'해고·권고사직', k:['해고','잘리','권고사직','부당해고','해고예고','정리해고','해직','짤리','쫓겨','내보내','계약만료','갱신거절','일방적','해고통보'], laws:['근로기준법'], t:['해고','해고의 예고','정당한 이유','30일'], arts:[['근로기준법','제23조','해고'],['근로기준법','제26조','해고'],['근로기준법','제27조','해고'],['근로기준법','제28조','구제']]},
+ {n:'임금·체불·최저임금', k:['임금','월급','체불','최저임금','통상임금','주휴','급여','못 받','밀린','밀렸','알바','시급','아르바이트','수당','상여','보너스','돈 안','안 줘'], laws:['근로기준법','최저임금법','임금채권보장법'], t:['임금','체불','최저임금','지급'], not:['수출대금','수출 대금','바이어','수입자','수입상'], arts:[['근로기준법','제36조','금품'],['근로기준법','제43조','임금'],['최저임금법','제6조','최저임금']]},
  {n:'근로계약·채용·비정규직', k:['근로계약','채용','수습','계약직','기간제','비정규직','파견','정규직','근로조건'], laws:['근로기준법','기간제 및 단시간근로자 보호 등에 관한 법률','파견근로자 보호 등에 관한 법률'], t:['근로계약','기간제','계약기간','2년']},
- {n:'근로시간·휴가', k:['연차','휴가','휴게','연장근로','야간근로','휴일근로','근로시간','주52시간','52시간','초과근무','야근','밤샘','대휴','휴무','반차','월차','생리휴가','공휴일','쉬는 날'], laws:['근로기준법'], t:['연차','유급휴가','연장근로','근로시간','휴게']},
- {n:'육아휴직·출산', k:['육아휴직','출산','육아','배우자 출산','모성','임신','돌봄'], laws:['남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률','근로기준법'], t:['육아휴직','출산전후휴가','배우자 출산휴가','급여']},
+ {n:'근로시간·휴가', k:['연차','휴가','휴게','연장근로','야간근로','휴일근로','근로시간','주52시간','52시간','초과근무','야근','밤샘','대휴','휴무','반차','월차','생리휴가','공휴일','쉬는 날'], laws:['근로기준법'], t:['연차','유급휴가','연장근로','근로시간','휴게'], arts:[['근로기준법','제50조','근로시간'],['근로기준법','제53조','연장'],['근로기준법','제60조','연차']]},
+ {n:'육아휴직·출산', k:['육아휴직','출산','육아','배우자 출산','모성','임신','돌봄'], laws:['남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률','근로기준법'], t:['육아휴직','출산전후휴가','배우자 출산휴가','급여'], arts:[['남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률','제19조','육아휴직']]},
  {n:'산재·안전', k:['산재','산업재해','중대재해','안전보건','다쳤','재해','안전사고','부상','병가','치료비','요양'], laws:['산업재해보상보험법','산업안전보건법','중대재해 처벌 등에 관한 법률'], t:['산업재해','안전','보건','중대재해']},
  {n:'4대보험', k:['4대보험','고용보험','국민연금','건강보험','사회보험','실업급여','보험료'], laws:['고용보험법','국민연금법','국민건강보험법'], t:['실업급여','보험료','가입','피보험자']},
  {n:'직장 내 괴롭힘·성희롱', k:['괴롭힘','갑질','성희롱','직장내','직장 내','왕따','폭언','막말','따돌림','부당지시'], laws:['근로기준법','남녀고용평등과 일ㆍ가정 양립 지원에 관한 법률'], t:['괴롭힘','성희롱','조사','불리한 처우']},
  {n:'노동조합·노사', k:['노조','노동조합','단체교섭','파업','쟁의','노사','노동위원회','근로자대표'], laws:['노동조합 및 노동관계조정법','근로자참여 및 협력증진에 관한 법률'], t:['단체교섭','쟁의행위','노동조합']},
  {n:'외국인 고용', k:['외국인근로자','외국인 근로자','고용허가','비자','체류','외국인 직원'], laws:['외국인근로자의 고용 등에 관한 법률','출입국관리법'], t:['고용허가','외국인근로자','체류']},
- {n:'개인정보', k:['개인정보','정보유출','cctv','씨씨티비','주민등록번호','유출','마케팅 동의','스팸','광고 문자','문자 광고','수집 동의'], laws:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률'], t:['개인정보','동의','유출','처리']},
- {n:'상가 임대차', k:['상가','임대차','월세','임차','권리금','임대료','건물주','계약갱신','보증금','집주인','세입자','임대인','임차인','월세 인상','원상복구','가게 월세','임대차계약'], laws:['상가건물 임대차보호법','민법'], t:['보증금','계약갱신','권리금','임대료','차임']},
- {n:'주택 임대차', k:['전세','주택임대','전월세','임대차보호','전세사기','깡통전세','전세금','전입신고','확정일자','전세 반환','보증금 반환'], laws:['주택임대차보호법'], t:['보증금','계약갱신','대항력']},
+ {n:'개인정보', k:['개인정보','정보유출','cctv','씨씨티비','주민등록번호','유출','마케팅 동의','스팸','광고 문자','문자 광고','수집 동의'], laws:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률'], t:['개인정보','동의','유출','처리'], arts:[['개인정보 보호법','제34조','유출']]},
+ {n:'상가 임대차', k:['상가','임대차','월세','임차','권리금','임대료','건물주','계약갱신','보증금','집주인','세입자','임대인','임차인','월세 인상','원상복구','가게 월세','임대차계약'], laws:['상가건물 임대차보호법','민법'], t:['보증금','계약갱신','권리금','임대료','차임'], arts:[['상가건물 임대차보호법','제10조','갱신'],['상가건물 임대차보호법','제10조의4','권리금'],['상가건물 임대차보호법','제11조','증감']]},
+ {n:'주택 임대차', k:['전세','주택임대','전월세','임대차보호','전세사기','깡통전세','전세금','전입신고','확정일자','전세 반환','보증금 반환'], laws:['주택임대차보호법'], t:['보증금','계약갱신','대항력'], arts:[['주택임대차보호법','제3조','대항력'],['주택임대차보호법','제6조의3','갱신'],['주택임대차보호법','제7조','증감']]},
  {n:'부가가치세', k:['부가세','부가가치세','세금계산서','매입세액','간이과세','면세','현금영수증','홈택스','부가세 신고','매출 신고'], laws:['부가가치세법','조세특례제한법'], t:['부가가치세','세금계산서','간이과세','매입세액']},
  {n:'법인세·소득세', k:['법인세','소득세','종합소득','양도세','원천징수','세무','세금','절세','세액공제','경비'], laws:['법인세법','소득세법','국세기본법','조세특례제한법'], t:['세액','공제','과세표준','원천징수']},
  {n:'상속·증여·가업승계', k:['상속','증여','가업승계','유언'], laws:['상속세 및 증여세법','민법','조세특례제한법'], t:['상속','증여','가업상속공제']},
- {n:'수출입·무역', k:['수출','수입','무역','통관','수출입','무역업','수출신고','수출 첫','해외 판매','해외판매','바이어','해외 거래','직구','역직구','샘플','수출 서류','인보이스','선적','무역 처음','수출 처음'], laws:['대외무역법','관세법','외국환거래법','무역보험법'], t:['수출','수입','무역','통관']},
- {n:'관세·FTA·원산지', k:['관세','fta','에프티에이','원산지','특혜','품목분류','관세사','관세환급','환급','세관','관세청','통관 비용','수입 신고','관세 감면'], laws:['관세법','자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','대외무역법'], t:['원산지','관세','자유무역협정','원산지증명서','환급']},
- {n:'외환·해외송금', k:['외환','환율','해외송금','외국환','외화','해외직접투자','송금','달러','해외 입금','해외 계좌','외화 입금','외국에서 돈'], laws:['외국환거래법','외국인투자 촉진법'], t:['외국환','신고','해외직접투자','송금']},
- {n:'해외진출·외국인투자', k:['해외진출','해외지사','해외법인','외국인투자','현지법인','수출바우처','해외시장','해외 진출'], laws:['외국환거래법','외국인투자 촉진법','대외무역법','중소기업진흥에 관한 법률'], t:['해외직접투자','외국인투자','신고']},
- {n:'공공조달·입찰', k:['조달','입찰','공공계약','나라장터','낙찰','적격심사','계약보증','수의계약','공공기관 계약','관공서','공공기관 납품','학교 납품','제안서','조달청','입찰 참가','사업 수주','우선구매','직접생산','공공 납품'], laws:['국가를 당사자로 하는 계약에 관한 법률','조달사업에 관한 법률','지방자치단체를 당사자로 하는 계약에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['입찰','계약','낙찰','적격심사','수의계약','참가자격']},
- {n:'하도급·납품대금', k:['하도급','수급사업자','원사업자','납품단가','납품대금','대금 지급','기술탈취','연동제','대금','대금 못','대금을 안','돈을 안 줘','어음','단가 인하','후려치','떼였','미수금','납품 대금'], laws:['하도급거래 공정화에 관한 법률','대ㆍ중소기업 상생협력 촉진에 관한 법률'], t:['하도급대금','60일','납품','부당']},
+ {n:'수출입·무역', k:['수출','수입','무역','통관','수출입','무역업','수출신고','수출 첫','해외 판매','해외판매','바이어','해외 거래','직구','역직구','샘플','수출 서류','인보이스','선적','무역 처음','수출 처음'], laws:['대외무역법','관세법','외국환거래법','무역보험법'], t:['수출','수입','무역','통관'], arts:[['대외무역법','제11조','수출입'],['관세법','제241조','신고']]},
+ {n:'관세·FTA·원산지', k:['관세','fta','에프티에이','원산지','특혜','품목분류','관세사','관세환급','환급','세관','관세청','통관 비용','수입 신고','관세 감면'], laws:['관세법','자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','대외무역법'], t:['원산지','관세','자유무역협정','원산지증명서','환급'], arts:[['자유무역협정의 이행을 위한 관세법의 특례에 관한 법률','제11조','원산지증명']]},
+ {n:'외환·해외송금', k:['외환','환율','해외송금','외국환','외화','해외직접투자','송금','달러','해외 입금','해외 계좌','외화 입금','외국에서 돈'], laws:['외국환거래법','외국인투자 촉진법'], t:['외국환','신고','해외직접투자','송금'], arts:[['외국환거래법','제18조','자본거래']]},
+ {n:'해외진출·외국인투자', k:['해외진출','해외지사','해외법인','외국인투자','현지법인','수출바우처','해외시장','해외 진출'], laws:['외국환거래법','외국인투자 촉진법','대외무역법','중소기업진흥에 관한 법률'], t:['해외직접투자','외국인투자','신고'], all:[[['중국','베트남','미국','일본','인도','인도네시아','태국','말레이시아','필리핀','싱가포르','대만','홍콩','멕시코','브라질','독일','영국','프랑스','캐나다','호주','러시아','우즈베키스탄','카자흐스탄','몽골','두바이','사우디','아랍에미리트','튀르키예','터키','폴란드','헝가리','해외','현지','외국'],['법인','지사','지점','사무소','공장','자회사'],['세우','설립','만들','차리','진출','투자','내려','열려','열고']]], arts:[['외국환거래법','제18조','자본거래']]},
+ {n:'공공조달·입찰', k:['조달','입찰','공공계약','나라장터','낙찰','적격심사','계약보증','수의계약','공공기관 계약','관공서','공공기관 납품','학교 납품','제안서','조달청','입찰 참가','사업 수주','우선구매','직접생산','공공 납품'], laws:['국가를 당사자로 하는 계약에 관한 법률','조달사업에 관한 법률','지방자치단체를 당사자로 하는 계약에 관한 법률','중소기업제품 구매촉진 및 판로지원에 관한 법률'], t:['입찰','계약','낙찰','적격심사','수의계약','참가자격'], arts:[['국가를 당사자로 하는 계약에 관한 법률','제27조','입찰']]},
+ {n:'하도급·납품대금', k:['하도급','수급사업자','원사업자','납품단가','납품대금','대금 지급','기술탈취','연동제','대금','대금 못','대금을 안','돈을 안 줘','어음','단가 인하','후려치','떼였','미수금','납품 대금'], laws:['하도급거래 공정화에 관한 법률','대ㆍ중소기업 상생협력 촉진에 관한 법률'], t:['하도급대금','60일','납품','부당'], not:['신용장','l/c','바이어','수입자','수입상','수출대금','수출 대금'], arts:[['하도급거래 공정화에 관한 법률','제13조','하도급대금'],['하도급거래 공정화에 관한 법률','제12조의3','기술자료']]},
  {n:'공정거래·불공정', k:['공정거래','독점','담합','불공정','시장지배','끼워팔기','우월적'], laws:['독점규제 및 공정거래에 관한 법률'], t:['불공정거래행위','담합','부당한']},
  {n:'가맹사업', k:['가맹','프랜차이즈','가맹점','가맹본부'], laws:['가맹사업거래의 공정화에 관한 법률'], t:['가맹','정보공개서','가맹금','계약갱신요구']},
  {n:'특허·상표·영업비밀', k:['특허','상표','디자인권','실용신안','지식재산','지재권','출원','영업비밀','기술유출','침해','아이디어','베꼈','카피','모방','짝퉁','위조','복제품','도용'], laws:['특허법','상표법','디자인보호법','부정경쟁방지 및 영업비밀보호에 관한 법률'], t:['특허','상표','출원','침해','영업비밀']},
@@ -185,11 +193,11 @@ const TOPICS = [
  {n:'벤처·투자', k:['벤처','투자','스타트업','엔젤','투자유치','스톡옵션','지분'], laws:['벤처투자 촉진에 관한 법률','벤처기업육성에 관한 특별조치법','상법'], t:['벤처','투자','주식매수선택권']},
  {n:'회사·주주·이사', k:['주주','이사','대표이사','주주총회','정관','유한회사','주식회사','배당','합병','자본금'], laws:['상법'], t:['주주총회','이사','정관','배당']},
  {n:'폐업·회생·파산', k:['폐업','부도','회생','파산','채무','빚','개인회생','도산','경영위기','문 닫','망했','접으려','가게 접','부채','신용회복'], laws:['채무자 회생 및 파산에 관한 법률','소상공인 보호 및 지원에 관한 법률'], t:['회생','파산','폐업','채무']},
- {n:'계약·손해배상·채권', k:['계약서','계약','손해배상','위약금','계약해제','해지','채권','연체','이자','계약금','내용증명','소멸시효','시효','독촉','돈 빌려','빌려준','안 갚','차용증','갚지','공증','계약 파기','파기','떼였','미수금','돈을 못'], laws:['민법','상법'], t:['손해배상','해제','위약금','소멸시효','이자']},
+ {n:'계약·손해배상·채권', k:['계약서','계약','손해배상','위약금','계약해제','해지','채권','연체','이자','계약금','내용증명','소멸시효','시효','독촉','돈 빌려','빌려준','안 갚','차용증','갚지','공증','계약 파기','파기','떼였','미수금','돈을 못'], laws:['민법','상법'], t:['손해배상','해제','위약금','소멸시효','이자'], arts:[['민법','제390조','채무불이행'],['민법','제750조','불법행위'],['민법','제162조','소멸시효'],['상법','제64조','시효']]},
  {n:'소비자·환불·전자상거래', k:['환불','소비자','청약철회','반품','교환','전자상거래','통신판매','쇼핑몰','약관','환불 안','반품 안','불량','as','수리','보증기간','사기당','먹튀'], laws:['전자상거래 등에서의 소비자보호에 관한 법률','소비자기본법','약관의 규제에 관한 법률'], t:['청약철회','7일','환불','통신판매업','약관']},
  {n:'표시·광고', k:['광고','표시','허위과장','표시광고','원산지표시','라벨'], laws:['표시ㆍ광고의 공정화에 관한 법률','식품 등의 표시ㆍ광고에 관한 법률'], t:['표시','광고','거짓','과장']},
  {n:'식품·영업신고', k:['식품','음식점','영업신고','위생','haccp','영업허가','식당','카페','식품제조','유통기한','식당 차리','음식점 차리','배달','위생등급','영업신고증','술집','주류','주점'], laws:['식품위생법','식품안전기본법'], t:['영업신고','위생','식품','허가']},
- {n:'공장·건축·입지', k:['공장','건축','용도변경','인허가','공장등록','산업단지','토지','건축물','준공','공장설립'], laws:['산업집적활성화 및 공장설립에 관한 법률','건축법','국토의 계획 및 이용에 관한 법률'], t:['공장등록','용도','건축','허가']},
+ {n:'공장·건축·입지', k:['공장','건축','용도변경','인허가','공장등록','산업단지','토지','건축물','준공','공장설립'], laws:['산업집적활성화 및 공장설립에 관한 법률','건축법','국토의 계획 및 이용에 관한 법률'], t:['공장등록','용도','건축','허가'], not:['맡겨','맡기','위탁','외주','임가공','해외 공장','중국 공장','베트남 공장','현지 공장']},
  {n:'환경·폐기물', k:['환경','폐기물','배출','대기','오염','화학물질','탄소','온실가스'], laws:['폐기물관리법','대기환경보전법','화학물질관리법','물환경보전법'], t:['폐기물','배출','신고','허가']},
  {n:'대출·보증·금융', k:['대출','신용보증','금리','융자','보증서','담보','저당','자금','정책자금','신보','기보','보증','융자','한도'], laws:['신용보증기금법','기술보증기금법','은행법','중소기업진흥에 관한 법률'], t:['신용보증','대출','담보','보증']},
  {n:'형사·명예훼손', k:['명예훼손','모욕','사기','횡령','배임','고소','고발','형사','처벌','벌금','징역','폭행','협박','절도','고소장','합의','경찰','입건','벌금형','전과','기소','피의자','도둑','때렸','맞았','스토킹'], laws:['형법','형사소송법'], t:['명예훼손','사기','횡령','배임','벌금']},
@@ -202,12 +210,16 @@ const TOPICS = [
  {n:'학교·아동·청소년', k:['학교폭력','아동학대','청소년','체벌','학원','교권','학폭','따돌림 학교'], laws:['학교폭력예방 및 대책에 관한 법률','아동복지법','아동학대범죄의 처벌 등에 관한 특례법','청소년 보호법'], t:['학교폭력','아동학대','보호','신고']},
  {n:'부동산 매매·등기', k:['부동산','매매','등기','분양','재건축','취득세','중개','공인중개사','명도','부동산 계약','집 사','땅 사'], laws:['부동산 거래신고 등에 관한 법률','공인중개사법','부동산등기법','민법','지방세법'], t:['부동산','등기','중개','신고']},
  {n:'소송·강제집행', k:['소송','소액','지급명령','가압류','강제집행','압류','조정','민사','항소','판결','재판','소장'], laws:['민사소송법','민사집행법','소액사건심판법','민사조정법'], t:['소송','가압류','강제집행','지급명령','소액']},
- {n:'건설·공사', k:['건설','공사','시공','하자','건설업','건설업등록','시공사','공사대금','하자보수','인테리어'], laws:['건설산업기본법','건축법','주택법','공동주택관리법'], t:['건설업','하자','공사대금','도급']},
+ {n:'건설·공사', k:['건설','공사','시공','하자','건설업','건설업등록','시공사','공사대금','하자보수','인테리어'], laws:['건설산업기본법','건축법','주택법','공동주택관리법'], t:['건설업','하자','공사대금','도급'], not:['신용장','l/c','선적서류','서류 하자']},
  {n:'운송·물류', k:['물류','화물','운송','택배','화물차','운수','포워딩','선하증권','해상운송','해상'], laws:['화물자동차 운수사업법','물류정책기본법','상법','대외무역법'], t:['화물','운송','물류','운송인']},
  {n:'화장품·의약품·의료', k:['화장품','의약품','의료기기','약국','병원','건강기능식품','의료사고','수술','약사'], laws:['화장품법','약사법','의료기기법','건강기능식품에 관한 법률','의료법'], t:['화장품','의약품','의료기기','허가','신고']},
  {n:'농수산물·검역', k:['농산물','수산물','축산','농업','검역','식물검역','수출검역','농업인','농산물 수출'], laws:['농수산물 품질관리법','식물방역법','농수산물 유통 및 가격안정에 관한 법률','농어업경영체 육성 및 지원에 관한 법률'], t:['농산물','검역','품질','수출']},
- {n:'무역보험·수출금융', k:['무역보험','수출보험','수출금융','무보','수출신용','수출채권','환변동','수출대금','수출 대금','결제 못 받'], laws:['무역보험법','대외무역법','외국환거래법'], t:['무역보험','수출','보험','손실']},
- {n:'수출통제·전략물자', k:['전략물자','수출통제','수출허가','이중용도','제재','수출 금지','수출금지'], laws:['대외무역법','방위사업법'], t:['전략물자','수출허가','수출통제']},
+ {n:'무역보험·수출금융', k:['무역보험','수출보험','수출금융','무보','수출신용','수출채권','환변동','수출대금','수출 대금','결제 못 받'], laws:['무역보험법','대외무역법','외국환거래법'], t:['무역보험','수출','보험','손실'], all:[[['바이어','수입자','수입상','해외 거래처','외국 거래처'],['돈','대금','결제','송금','입금'],['안 보','안보','못 받','못받','늦','미루','연체','떼','안 줘','안 주','안줘','안 들어','거절','부도']]]},
+ {n:'수출통제·전략물자', k:['전략물자','수출통제','수출허가','이중용도','제재','수출 금지','수출금지'], laws:['대외무역법','방위사업법'], t:['전략물자','수출허가','수출통제'], all:[[['드론','레이저','암호','적외선','열화상','방산','무기','군용','원자력','탄소섬유','공작기계','가속도계','자이로','항법','반도체 장비','화학물질','유도','위성'],['수출','해외로','팔아','팔려','판매','보내']],[['러시아','이란','북한','벨라루스','시리아','쿠바'],['수출','팔아','팔려','판매','보내','거래','송금']]], arts:[['대외무역법','제19조','전략물자']]},
+ {n:'영업비밀·기술유출', k:['영업비밀','기술유출','기술 유출','산업스파이','도면 유출','자료 유출','빼돌'], all:[[['직원','퇴사','퇴직','연구원','협력업체','하청','거래처','동업자'],['기술','도면','자료','고객','설계','노하우','소스','레시피','배합','공정'],['경쟁사','빼돌','들고','가지고','가져','유출','이직','차렸','창업','넘겼','넘기']]], laws:['부정경쟁방지 및 영업비밀보호에 관한 법률','산업기술의 유출방지 및 보호에 관한 법률','중소기업기술 보호 지원에 관한 법률'], t:['영업비밀','침해','유출','비밀'], arts:[['부정경쟁방지 및 영업비밀보호에 관한 법률','제2조','정의'],['부정경쟁방지 및 영업비밀보호에 관한 법률','제10조','금지'],['부정경쟁방지 및 영업비밀보호에 관한 법률','제11조','손해배상'],['부정경쟁방지 및 영업비밀보호에 관한 법률','제18조','벌칙']]},
+ {n:'위탁가공무역·해외생산', k:['위탁가공','임가공','해외 생산','해외생산','oem','외주 생산','중계무역'], all:[[['공장','업체','하청','협력사','제조사'],['맡겨','맡기','위탁','외주','하청'],['중국','베트남','미국','일본','인도','인도네시아','태국','말레이시아','필리핀','싱가포르','대만','홍콩','멕시코','브라질','독일','영국','프랑스','캐나다','호주','러시아','우즈베키스탄','카자흐스탄','몽골','두바이','사우디','아랍에미리트','튀르키예','터키','폴란드','헝가리','해외','현지','외국']],[['금형','원자재','원재료','부품','설비'],['보내','반출','무상']]], laws:['대외무역법','대외무역법 시행령','관세법'], t:['위탁가공','가공','원자재','반출'], arts:[['대외무역법 시행령','제2조','정의']]},
+ {n:'신용장·무역결제·인코텀즈', k:['신용장','l/c','엘씨','인코텀즈','incoterms','ucp','네고','선적서류','추심결제','수출 추심','d/p','d/a','fob','cif','exw','ddp','cfr','dap'], laws:[], t:['신용장','선적서류'], ext:{label:'신용장·결제·인코텀즈 국제 규칙 보기', url:'https://www.littlestar.co.kr/export-docs.html#law-pay'}},
+ {n:'국제분쟁·중재', k:['중재','중재판정','상사중재','대한상사중재원','뉴욕협약','국제소송','국제분쟁','해외 소송'], all:[[['바이어','해외','수입자','외국','국제'],['분쟁','소송','다툼','클레임','고소']]], laws:['중재법','국제사법'], t:['중재','중재합의','중재판정','관할'], arts:[['중재법','제8조','중재합의'],['중재법','제35조','중재판정'],['중재법','제39조','외국중재판정']], ext:{label:'국제 분쟁·중재 규칙 보기', url:'https://www.littlestar.co.kr/export-docs.html#law-adr'}},
  {n:'제품 인증·안전·리콜', k:['kc','인증','안전인증','전기용품','제품안전','리콜','kc인증','적합성','안전확인'], laws:['전기용품 및 생활용품 안전관리법','제품안전기본법','산업표준화법','어린이제품 안전 특별법'], t:['안전인증','안전확인','리콜','제품']},
  {n:'세무조사·체납', k:['세무조사','체납','가산세','경정청구','조세불복','탈세','세금 체납','세금 못 내','납부기한'], laws:['국세기본법','국세징수법','조세범 처벌법'], t:['가산세','체납','경정청구','세무조사','불복']},
  {n:'지방세·부동산세', k:['재산세','취득세','등록면허세','지방세','종합부동산세','종부세'], laws:['지방세법','지방세기본법','종합부동산세법'], t:['취득세','재산세','세율','과세']},
@@ -257,9 +269,14 @@ function matchTopics(q){
   const nq = q.toLowerCase().replace(/\s+/g, ' ');      // 단어 경계를 유지해 '라이더도 산재'가 '도산'으로 읽히지 않게 한다
   const nqx = nq.replace(/ /g, '');
   const toks = tokenize(q).map(t => t.toLowerCase());
+  const has = w => nq.includes(w.toLowerCase().replace(/\s+/g, ' ')) || nqx.includes(norm(w).toLowerCase());
   const res = [];
   for (const tp of TOPICS){
+    // not: 함께 나오면 이 주제가 아니라는 뜻이 되는 말 (예: '하자' + '신용장'이면 건설 하자가 아니다)
+    if (tp.not && tp.not.some(has)) continue;
     let score = 0; const hit = [];
+    // all: 낱말 묶음이 모두 나오면 주제를 잡는다 (예: 직원 + 기술 + 경쟁사 → 영업비밀)
+    if (tp.all && tp.all.some(combo => combo.every(g => g.some(has)))){ score += 7; hit.push(tp.t[0]); }
     for (const k of tp.k){
       const nk = norm(k).toLowerCase();
       const sp = k.toLowerCase().replace(/\s+/g, ' ');
@@ -321,10 +338,33 @@ async function resolveLaw(name){
   return list.find(l => norm(l.법령명한글) === norm(name)) || null;
 }
 
+/* ---------- 법제처 일상용어 → 법령용어 (법령정보지식베이스) ---------- */
+/* 상황 사전으로 주제를 못 잡았을 때만 부른다. 법제처 안내서 기준 lawService.do?target=dlytrmRlt&query=일상용어.
+   인증키에 이 서비스가 허용되지 않았거나 응답이 늦으면 조용히 건너뛰고 기존 검색만 한다. */
+const collectKey = (o, key, out = []) => {
+  if (Array.isArray(o)) o.forEach(v => collectKey(v, key, out));
+  else if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => k === key ? out.push(...toArray(v)) : collectKey(v, key, out));
+  return out;
+};
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+async function legalTermsOf(words){
+  const settled = await Promise.allSettled(words.map(w =>
+    withTimeout(api('/DRF/lawService.do', {target: 'dlytrmRlt', query: w}), 4000)
+      .then(j => ({w, terms: collectKey(j, '법령용어명').map(t => String(t).trim()).filter(t => t.length >= 2 && t !== w)}))
+  ));
+  return settled.filter(s => s.status === 'fulfilled' && s.value.terms.length)
+    .map(s => ({w: s.value.w, terms: [...new Set(s.value.terms)].slice(0, 3)}));
+}
+
 /* ---------- 검색 실행 ---------- */
 const KIND_ORDER = {'법률':0,'대통령령':1,'총리령':2};
 let currentTerms = new Map();
 let currentExact = [];   // 따옴표로 지정한 정확한 검색어
+let currentArts = [];    // 잡힌 주제의 대표 조문 [법령명, 조번호, 조문 제목에 들어 있어야 할 말]
+let currentQuery = '';
+let currentResults = [];
+let currentExt = [];     // 국내 법령보다 국제 규칙이 기준인 주제의 안내 링크
+let currentLegal = [];   // 법제처 일상용어 → 법령용어 결과 [{w, terms}]
 
 async function runSearch(raw){
   const q = raw.trim();
@@ -339,15 +379,29 @@ async function runSearch(raw){
   currentExact = phrases;
   if (phrases.length){ await runExact(phrases); return; }
 
-  const topics = matchTopics(q);
-  const strong = topics.filter(x => x.score >= 3);
+  const VERBISH = /(면|는데|는|ㄹ|을|릴|게|지|까|요|다|서|고|며|나|데)$/;
+  let strong = matchTopics(q).filter(x => x.score >= 3);
   const toks = tokenize(q);
+
+  // 상황 사전으로 주제를 못 잡으면 법제처 일상용어 사전으로 법령용어를 얻어 다시 맞춰 본다
+  currentLegal = [];
+  if (!strong.length){
+    const cand = toks.filter(t => !VERBISH.test(t)).slice(0, 2);
+    if (cand.length){
+      out.innerHTML = '<div class="state">관련 법령을 찾는 중입니다… (법령용어 확인 중)</div>';
+      currentLegal = await legalTermsOf(cand).catch(() => []);
+    }
+    const legalAll = currentLegal.flatMap(x => x.terms);
+    if (legalAll.length) strong = matchTopics(q + ' ' + legalAll.join(' ')).filter(x => x.score >= 3);
+  }
+  const legal = currentLegal.flatMap(x => x.terms);
+  currentArts = strong.flatMap(x => x.tp.arts || []);
+  currentExt = strong.filter(x => x.tp.ext).map(x => x.tp.ext);
 
   // 주제가 잡히면 그 핵심어만, 못 잡히면 입력한 단어를 그대로 사용 (군더더기 단어가 검색을 흐리지 않게)
   const hits = [...new Set(strong.flatMap(x => x.hit))].sort((a, b) => b.length - a.length);
   currentTerms = new Map();
   // 질문에 적은 구체적인 명사(예: 선금, 지급한도)는 주제 핵심어보다 우선해서 찾는다
-  const VERBISH = /(면|는데|는|ㄹ|을|릴|게|지|까|요|다|서|고|며|나|데)$/;
   const specific = toks.filter(t => !VERBISH.test(t) &&
     !hits.some(h => norm(h).toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(norm(h).toLowerCase())) &&
     !strong.some(x => x.tp.t.some(k => k.includes(t) || t.includes(k))));
@@ -357,6 +411,7 @@ async function runSearch(raw){
     specific.forEach(t => currentTerms.set(t, 4));
   } else {
     toks.forEach(t => currentTerms.set(t, 2));
+    legal.forEach(t => currentTerms.set(t, 3));
   }
   const nameTerms = (strong.length ? hits : toks).slice(0, 2);
 
@@ -374,7 +429,7 @@ async function runSearch(raw){
   if (usePhrase){
     jobs.push(searchLaws(phrase, 1).then(a => a.map((l, i) => ({...l, _src:'name', _rank:90 - i * 0.1}))));
   }
-  const bodyTerms = [...new Set([specific[0], strong[0]?.tp.t[0], nameTerms[0]].filter(Boolean))].slice(0, 2);
+  const bodyTerms = [...new Set([specific[0], strong[0]?.tp.t[0], strong.length ? '' : legal[0], nameTerms[0]].filter(Boolean))].slice(0, 2);
   bodyTerms.forEach(t => jobs.push(
     searchLaws(t, 2).then(a => a.slice(0, 10).map((l, i) => ({...l, _src:'body', _rank:20 - i * 0.1})))
   ));
@@ -411,6 +466,7 @@ async function runSearch(raw){
   const order = exactKind ? [exactKind, ...KIND_LIST.filter(k => k !== exactKind)] : KIND_LIST;
   const results = order.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
 
+  currentQuery = q; currentResults = results;
   renderResults(q, strong, toks, results);
   // 같은 상황의 판례·법령해석례도 함께 찾는다 (구체적인 단어 → 주제 핵심어 순)
   const caseTerms = [...new Set([...specific, ...(strong.length ? hits : toks)])].filter(t => !VERBISH.test(t)).slice(0, 2);
@@ -419,6 +475,7 @@ async function runSearch(raw){
 
 async function runExact(phrases){
   currentTerms = new Map(phrases.map(p => [p, 5]));
+  currentArts = []; currentExt = []; currentLegal = [];
   const settled = await Promise.allSettled(KIND_LIST.flatMap(k => phrases.map(async p => ({
     k, p, name: await searchKind(k, p, 1, '100'), body: await searchKind(k, p, 2, '100')
   }))));
@@ -439,6 +496,7 @@ async function runExact(phrases){
       .map(l => { const n = rk.every(r => inName(l, r.p)); return {...l, _src: n ? 'name' : 'body', _rank: n ? 130 : 50}; })
       .sort(cmp).slice(0, LIMIT[k]));
   }
+  currentQuery = phrases.map(p => `'${p}'`).join(' '); currentResults = results;
   renderResults(phrases.join(' '), [], [], results);
 }
 
@@ -472,6 +530,14 @@ function renderResults(q, strong, toks, results){
   } else if (toks.length){
     html += `<div class="understood"><b>입력하신 말을 그대로 검색했습니다.</b> 상황을 조금 더 구체적으로 적으면 더 잘 찾습니다. <br><span style="color:var(--sub)">검색어: ${toks.map(esc).join(', ')}</span></div>`;
   }
+  if (currentLegal.length){
+    html += `<div class="understood"><b>법제처 법령용어 사전으로 바꿔 함께 찾았습니다.</b> ` +
+      currentLegal.map(x => `<span class="tag">${esc(x.w)} → ${x.terms.map(esc).join(', ')}</span>`).join('') + `</div>`;
+  }
+  currentExt.forEach(e => {
+    html += `<div class="understood">이 질문은 국내 법령보다 국제 규칙(ICC 신용장통일규칙·인코텀즈·중재규칙 등)과 계약서 조항이 기준인 경우가 많습니다. ` +
+      `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.label)} ↗</a></div>`;
+  });
   if (!results.length){
     out.innerHTML = html + '<div class="state">' + (currentExact.length ? '따옴표로 지정한 말이 모두 들어간 법령을 찾지 못했습니다. 띄어쓰기와 철자를 확인하거나, 따옴표를 빼고 검색해 보세요.' : '검색 결과가 없습니다. 다른 표현으로 다시 적어 보세요.') + '</div>';
     return;
@@ -497,8 +563,10 @@ function renderResults(q, strong, toks, results){
     html += `<div class="sec">${KINDS[k].label} <span class="score">${KINDS[k].sub} · ${items.length}건</span></div>` +
       items.map(([l, i]) => cardHtml(l, i)).join('');
   });
+  html += aiBoxHtml();
   out.innerHTML = html;
   out.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => openLaw(results[+b.dataset.i])));
+  $('aiMake').addEventListener('click', makeAiPrompt);
 }
 
 /* ---------- 판례·법령해석례 ---------- */
@@ -657,8 +725,88 @@ function highlighter(terms){
   return s => esc(s).replace(re, '<mark>$1</mark>');
 }
 
+const artLink = (art, law) => art.no ? `https://www.law.go.kr/${KINDS[law.kind || 'law'].path}/${encodeURIComponent(law.name.replace(/\s+/g, ''))}/${encodeURIComponent(art.no)}` : '';
+
+// 조문 고르기: 주제의 대표 조문(번호와 제목이 모두 맞을 때만) + 핵심어 일치 순
+function pickArticles(law, arts, limit){
+  if (currentExact.length){
+    return {pins: [], ranked: arts.filter(a => !a.isHeading && currentExact.every(p => norm(a.text).includes(norm(p)))).slice(0, limit)};
+  }
+  const pins = [];
+  currentArts.filter(p => norm(p[0]) === norm(law.name)).forEach(p => {
+    const a = arts.find(x => !x.isHeading && x.no === p[1] && (x.title + ' ' + x.head).includes(p[2]));
+    if (a && !pins.includes(a)) pins.push(a);
+  });
+  const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)}))
+    .filter(x => x.s > 0 && !pins.includes(x.a)).sort((x, y) => y.s - x.s).slice(0, limit).map(x => x.a);
+  return {pins, ranked};
+}
+
+/* ---------- AI 질문용 글 (프롬프트 복사형) ----------
+   이 페이지는 AI를 부르지 않는다. 찾은 조문과 질문을 묶은 글을 만들어 방문자가 직접 복사해 쓴다. */
+function aiBoxHtml(){
+  return `<div class="ai-box">
+    <div class="sec">AI에게 물어보기 <span class="score">프롬프트 복사형 · 이 페이지는 AI를 부르지 않습니다</span></div>
+    <p>위 결과에서 질문과 관련 깊은 조문을 골라, 질문과 함께 한 덩어리 글로 만들어 드립니다. 쓰시는 AI(Claude, ChatGPT 등)에 붙여 넣으면 그 조문만 근거로 답하도록 요청하는 글입니다.</p>
+    <div class="ai-warn"><b>법률 자문이 아닙니다.</b> AI 답변은 틀리거나 빠뜨릴 수 있고, 조문은 검색어 일치로 고른 것이라 중요한 조문이 빠졌을 수 있습니다.
+      판단 전에 반드시 국가법령정보센터 원문을 확인하고, 필요하면 변호사·관세사·노무사·세무사 등 전문가와 상의하세요.
+      이름·연락처·회사명·계좌 같은 개인정보는 질문에 넣지 마세요. 복사한 글을 붙여 넣으면 그 AI 서비스로 전송됩니다.</div>
+    <button class="btn pri" id="aiMake" type="button">AI 질문용 글 만들기</button>
+    <div id="aiOut"></div>
+  </div>`;
+}
+const AI_RULES = `아래 [질문]에 대해 [참고 조문]만을 근거로 답해 주세요.
+
+답변 규칙
+1. 결론 → 근거 조문 → 더 확인할 점 순서로 간단히 정리해 주세요.
+2. 문장마다 근거 조문을 (법령명 제○조 제○항)처럼 적어 주세요.
+3. 참고 조문만으로 답할 수 없는 부분은 "제공된 조문만으로는 확실하지 않음"이라고 쓰고, 더 확인할 법령·시행령·고시나 기관을 적어 주세요. 조문에 없는 내용을 추측해 채우지 마세요.
+4. 시행령·시행규칙·고시, 판례·유권해석, 개정 여부에 따라 결론이 달라질 수 있는 부분은 따로 표시해 주세요.
+5. 맨 끝에 "법률 자문이 아닌 참고용 정리이며, 법령 원문과 전문가 확인이 필요함"을 한 줄로 적어 주세요.`;
+const AI_PER_LAW = 4, AI_MAX = 10, AI_ART_CHARS = 1500;
+async function makeAiPrompt(){
+  const btn = $('aiMake'), box = $('aiOut');
+  btn.disabled = true;
+  box.innerHTML = '<div class="state">조문을 모으는 중입니다…</div>';
+  const laws = [...currentResults.filter(l => l._kind === 'law').slice(0, 3), ...currentResults.filter(l => l._kind === 'admrul').slice(0, 1)];
+  const settled = await Promise.allSettled(laws.map(async l => {
+    const data = await api('/DRF/lawService.do', l._kind === 'admrul' ? {target: 'admrul', ID: l.법령일련번호} : {target: 'law', MST: l.법령일련번호});
+    const law = {name: l.법령명한글, kind: l._kind};
+    const {pins, ranked} = pickArticles(law, extractArticles(law.kind, data), AI_PER_LAW);
+    return [...pins, ...ranked].slice(0, AI_PER_LAW).map(a => ({l, law, a}));
+  }));
+  btn.disabled = false;
+  const picked = settled.filter(s => s.status === 'fulfilled').flatMap(s => s.value).slice(0, AI_MAX);
+  if (!picked.length){
+    box.innerHTML = '<div class="state">질문과 일치하는 조문을 찾지 못해 글을 만들지 않았습니다. 다른 표현으로 검색하거나, 법령의 \'관련 조문 보기\'에서 직접 확인해 주세요.</div>';
+    return;
+  }
+  const d = new Date();
+  const today = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const body = picked.map(({l, law, a}, i) => {
+    let t = a.lines.map(x => '  '.repeat(Math.max(x.l - 1, 0)) + x.t).join('\n');
+    if (t.length > AI_ART_CHARS) t = t.slice(0, AI_ART_CHARS) + ' …(이하 생략, 원문 확인)';
+    const link = decodeURI(artLink(a, law) || lawUrl(law.name, law.kind));   // 붙여 넣었을 때 읽기 쉽게 한글 주소로
+    return `${i + 1}) ${law.name}${l.시행일자 ? ` (시행 ${fmtDate(l.시행일자)})` : ''}\n${t}\n원문: ${link}`;
+  }).join('\n\n');
+  const text = `${AI_RULES}\n\n[질문]\n${currentQuery}\n\n[참고 조문]\n(국가법령정보센터 Open API에서 ${today}에 가져온 현행 조문입니다. HappyOh 법령 길잡이가 검색어 일치로 고른 것이라 관련 조문이 빠졌을 수 있습니다.)\n\n${body}\n`;
+  box.innerHTML = `<textarea class="ai-text" id="aiText" readonly aria-label="AI 질문용 글"></textarea>
+    <div class="ai-row">
+      <button class="btn pri" id="aiCopy" type="button">복사하기</button>
+      <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Claude 열기 ↗</a>
+      <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT 열기 ↗</a>
+      <span class="score" id="aiMsg">조문 ${picked.length}개 · ${text.length.toLocaleString()}자</span>
+    </div>`;
+  $('aiText').value = text;
+  $('aiCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) { $('aiText').select(); document.execCommand('copy'); }
+    $('aiMsg').textContent = '복사했습니다. 쓰시는 AI 창에 붙여 넣으세요. 답변은 반드시 원문과 대조하세요.';
+  });
+}
+
 function artHtml(art, law, hl, withScore){
-  const link = art.no ? `https://www.law.go.kr/${KINDS[law.kind || 'law'].path}/${encodeURIComponent(law.name.replace(/\s+/g, ''))}/${encodeURIComponent(art.no)}` : '';
+  const link = artLink(art, law);
   return `<div class="art">
     <div class="ah"><b>${esc(art.head || '조문')}</b>${link ? `<a href="${link}" target="_blank" rel="noopener">원문 ↗</a>` : ''}</div>
     ${art.lines.map((x, i) => {
@@ -692,7 +840,7 @@ async function openLaw(l){
   if (!arts.length){ $('vb').innerHTML = '<div class="state">이 규정은 조문 형식으로 제공되지 않습니다. 위의 원문 링크를 이용하세요.</div>'; return; }
 
   const hl = highlighter(currentTerms.keys());
-  const ranked = arts.map(a => ({a, s: scoreArticle(a, currentTerms)})).filter(x => x.s > 0).sort((x, y) => y.s - x.s).slice(0, 6);
+  const {pins, ranked} = pickArticles(law, arts, 6);
 
   let html = '';
   if (currentExact.length){
@@ -701,8 +849,9 @@ async function openLaw(l){
       ? `<div class="sec">따옴표로 지정한 말이 모두 들어간 조문 (${hitsA.length}개)</div>` + hitsA.slice(0, 30).map(a => artHtml(a, law, hl)).join('') +
         (hitsA.length > 30 ? '<div class="state">30개까지만 표시합니다. 아래 전체 조문에서 더 찾아보세요.</div>' : '')
       : '<div class="state">이 법령의 조문 중 따옴표로 지정한 말이 모두 들어간 곳이 없습니다. 말이 여러 조문에 나뉘어 있거나 띄어쓰기가 다를 수 있습니다.</div>';
-  } else if (ranked.length){
-    html += `<div class="sec">질문과 관련 깊은 조문 <span class="score">(핵심어 일치 순)</span></div>` + ranked.map(x => artHtml(x.a, law, hl)).join('');
+  } else if (pins.length || ranked.length){
+    if (pins.length) html += `<div class="sec">먼저 볼 대표 조문 <span class="score">(이 상황에서 자주 찾는 조문)</span></div>` + pins.map(a => artHtml(a, law, hl)).join('');
+    if (ranked.length) html += `<div class="sec">질문과 관련 깊은 조문 <span class="score">(핵심어 일치 순)</span></div>` + ranked.map(a => artHtml(a, law, hl)).join('');
   } else if (currentTerms.size){
     html += `<div class="state">입력하신 핵심어와 직접 일치하는 조문을 찾지 못했습니다. 아래 전체 조문에서 찾아 보세요.</div>`;
   }
