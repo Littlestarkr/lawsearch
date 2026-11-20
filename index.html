@@ -326,39 +326,39 @@ const LAW_ABBR = [
 const SUBLAW = /^\s*(시행령|시행규칙)/;
 const ABBR_PARTICLE = /^(상의|상|에서는|에서|에는|에|의|은|는|이|가|을|를|과|와|으로|로|도)(?=[^가-힣]|$)/;
 let ABBR_RE = null, ABBR_MAP = null;
+const abKey = x => norm(x).replace(/·/g, '').toLowerCase();
+const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function abbrIndex(){
   if (!ABBR_RE){
-    ABBR_MAP = new Map();
+    ABBR_MAP = new Map();   // 띄어쓰기를 뺀 이름 → 정식명
+    const pats = [];
     LAW_ABBR.forEach(([full, abs]) => {
-      const fn = norm(full);
-      if (!/\s/.test(full)) ABBR_MAP.set(fn, full);   // 띄어쓰기 없는 정식명(관세법 등)은 이름 그대로 알아본다
-      abs.forEach(a => ABBR_MAP.set(norm(a), full));
+      // 정식명은 띄어쓰기·가운뎃점을 달리 적어도 알아본다 ('국가를당사자로하는계약에관한법률', '대·중소기업')
+      ABBR_MAP.set(abKey(full), full);
+      pats.push({len: norm(full).length, p: [...full.replace(/\s+/g, '')].map(c => /[·ㆍ‧]/.test(c) ? '[·ㆍ‧]?' : reEsc(c)).join('\\s*')});
+      abs.forEach(a => { ABBR_MAP.set(abKey(a), full); pats.push({len: a.length, p: reEsc(a)}); });
     });
-    // 긴 약칭부터 맞춘다 ('FTA관세법'이 '관세법'보다 먼저). 앞은 낱말 경계여야 한다('최근기법' 속 '근기법'은 아님)
-    const alts = [...ABBR_MAP.keys()].sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    ABBR_RE = new RegExp('(^|[^가-힣A-Za-z])(' + alts.join('|') + ')', 'gi');
+    // 긴 이름부터 맞춘다 ('FTA관세법'이 '관세법'보다, 정식명 전체가 그 안의 '관세법'보다 먼저).
+    // 앞은 낱말 경계여야 한다('최근기법' 속 '근기법'은 아님)
+    pats.sort((a, b) => b.len - a.len);
+    ABBR_RE = new RegExp('(^|[^가-힣A-Za-z])(' + pats.map(x => x.p).join('|') + ')', 'gi');
   }
   return {re: ABBR_RE, map: ABBR_MAP};
 }
-/* 질문 속 약칭 풀기. 돌려주는 값
+const sameName = (a, b) => abKey(a) === abKey(b);
+/* 질문 속 법령 이름(약칭·정식명) 풀기. 돌려주는 값
    full: 약칭을 정식명으로 바꾼 질문, rest: 법령 이름(과 뒤따르는 시행령·조사)을 뺀 나머지 질문,
-   found: [{a: 적은 약칭, full: 정식명, sub: '시행령'|'시행규칙'|''}] */
+   found: [{a: 적은 이름, full: 정식명, sub: '시행령'|'시행규칙'|''}] */
 function expandAbbr(q){
   const {re, map} = abbrIndex();
-  // 정식명을 그대로 적은 부분은 건드리지 않는다 ('…관세법의 특례에 관한 법률' 속 '관세법')
   const qx = q.replace(/\s+/g, ' ');
-  const masked = LAW_ABBR.reduce((s, [full]) => {
-    if (!/\s/.test(full)) return s;
-    const pat = new RegExp(full.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ㆍ/g, '[·ㆍ‧]?').replace(/ /g, '\\s*'), 'g');
-    return s.replace(pat, m => '\u0000'.repeat(m.length));
-  }, qx);
   const found = [];
   let full = '', rest = '', last = 0, m;
   re.lastIndex = 0;
-  while ((m = re.exec(masked))){
+  while ((m = re.exec(qx))){
     const st = m.index + m[1].length, en = st + m[2].length;
-    const name = map.get(norm(m[2])) || map.get(norm(m[2]).toUpperCase());
-    if (!name){ continue; }
+    const name = map.get(abKey(m[2]));
+    if (!name) continue;
     let tail = qx.slice(en), sub = '';
     const sm = tail.match(SUBLAW);
     if (sm){ sub = sm[1]; tail = tail.slice(sm[0].length); }
@@ -542,7 +542,16 @@ async function runSearch(raw){
   const ab = expandAbbr(q);
   currentAbbr = ab.found;
   const qFull = ab.full, qRest = ab.found.length ? ab.rest : q;
-  let strong = matchTopics(qFull).filter(x => x.score >= 3);
+  // 법령 이름을 적었으면 상황 주제는 이름을 뺀 나머지 말로만 잡는다. '국가를 당사자로 하는 계약에 관한 법률'의 '계약'으로
+  // '계약·손해배상' 주제(민법)가 끼어들지 않게 하려는 것. 나머지 말이 없으면 그 법령이 들어 있는 주제 하나만 쓴다(대표 조문용)
+  let strong;
+  if (ab.found.length){
+    strong = matchTopics(qRest).filter(x => x.score >= 3);
+    if (!strong.length){
+      const own = TOPICS.find(tp => ab.found.some(f => tp.laws.some(n => sameName(n, f.full))));
+      if (own) strong = [{tp: own, score: 3, hit: [], own: true}];
+    }
+  } else strong = matchTopics(q).filter(x => x.score >= 3);
   // 붙여 쓴 긴 낱말은 사전 낱말로 쪼개 검색어로 쓴다 ('녹색제품의무구매인증' → 녹색제품·의무구매·인증)
   const toks = [...new Set(tokenize(qRest).flatMap(t => t.length >= 6 ? segment(t.toLowerCase()).filter(x => x.length >= 2) : [t]))];
 
@@ -555,7 +564,7 @@ async function runSearch(raw){
       currentLegal = await legalTermsOf(cand).catch(() => []);
     }
     const legalAll = currentLegal.flatMap(x => x.terms);
-    if (legalAll.length) strong = matchTopics(qFull + ' ' + legalAll.join(' ')).filter(x => x.score >= 3);
+    if (legalAll.length) strong = matchTopics(qRest + ' ' + legalAll.join(' ')).filter(x => x.score >= 3);
   }
   const legal = currentLegal.flatMap(x => x.terms);
   currentArts = strong.flatMap(x => x.tp.arts || []);
@@ -583,12 +592,17 @@ async function runSearch(raw){
   currentUserTerms.forEach(t => { if (!currentTerms.has(t)) currentTerms.set(t, 4); });
 
   const jobs = [];
-  // 약칭으로 적은 법령(과 함께 적은 시행령·시행규칙)은 맨 위에 둔다. 이름이 정확히 안 맞으면 법령명 검색으로 대신한다
+  // 이름(약칭)으로 적은 법령은 법률 → 시행령 → 시행규칙 순으로 맨 위에 모아 둔다(시행령을 적었으면 시행령부터).
+  // 주제 추천·낱말 검색 결과는 그 뒤에 온다(아래 정렬에서 +200). 이름이 정확히 안 맞으면 법령명 검색으로 대신한다
   currentAbbr.forEach((f, i) => {
-    const want = f.sub ? [[f.full + ' ' + f.sub, 125], [f.full, 120]] : [[f.full, 120]];
-    want.forEach(([n, r]) => jobs.push(resolveLaw(n).then(l => l
-      ? [{...l, _src:'abbr', _rank:r - i, _why: f.a === f.full ? '' : f.a}]
-      : searchLaws(n, 1).then(a => a.slice(0, 3).map((x, k) => ({...x, _src:'name', _rank:r - 15 - i - k * 0.1}))))));
+    const fam = f.sub ? [f.sub, '', ...['시행령', '시행규칙'].filter(x => x !== f.sub)] : ['', '시행령', '시행규칙'];
+    fam.forEach((sub, k) => {
+      const n = sub ? f.full + ' ' + sub : f.full, r = 130 - i * 5 - k;
+      jobs.push(resolveLaw(n).then(l => l
+        ? [{...l, _src:'abbr', _rank:r, _why: sameName(f.a, f.full) ? '' : f.a}]
+        : k > 0 && !(f.sub && sub === f.sub) ? []   // 직접 적지 않은 시행령·시행규칙은 없으면 그만
+        : searchLaws(n, 1).then(a => a.slice(0, 3).map((x, j) => ({...x, _src:'name', _rank:r - 40 - j * 0.1})))));
+    });
   });
   const names = [...new Set(strong.flatMap(x => x.tp.laws))].slice(0, 8);
   names.forEach((n, i) => jobs.push(
@@ -632,7 +646,7 @@ async function runSearch(raw){
   const needAll = toks.length >= 2 ? toks.map(t => norm(t)) : [];
   const allIn = l => needAll.length > 0 && needAll.every(t => norm(l.법령명한글).includes(t));
   const qn = norm(qFull).replace(/\s+/g, '');
-  const sorted = [...byId.values()].map(l => ({...l, _exact: qn.length >= 3 && norm(l.법령명한글).replace(/\s+/g, '') === qn, _rank: l._rank + (allIn(l) ? 30 : 0)})).map(l => ({...l, _rank: l._rank + (l._exact ? 100 : 0)})).sort((a, b) =>
+  const sorted = [...byId.values()].map(l => l._src === 'abbr' ? {...l, _rank: l._rank + 200} : l).map(l => ({...l, _exact: qn.length >= 3 && norm(l.법령명한글).replace(/\s+/g, '') === qn, _rank: l._rank + (allIn(l) ? 30 : 0)})).map(l => ({...l, _rank: l._rank + (l._exact ? 100 : 0)})).sort((a, b) =>
     (b._rank - a._rank) || ((KIND_ORDER[a.법령구분명] ?? 9) - (KIND_ORDER[b.법령구분명] ?? 9))
   );
   const LIMIT = {law: 15, admrul: 8, ordin: 8};
@@ -640,7 +654,7 @@ async function runSearch(raw){
   const order = exactKind ? [exactKind, ...KIND_LIST.filter(k => k !== exactKind)] : KIND_LIST;
   const results = order.flatMap(k => sorted.filter(l => l._kind === k).slice(0, LIMIT[k]));
 
-  currentQuery = q + (currentAbbr.some(f => f.a !== f.full) ? ` (약칭 풀이: ${currentAbbr.filter(f => f.a !== f.full).map(f => `${f.a} = ${f.full}`).join(', ')})` : '');
+  currentQuery = q + (currentAbbr.some(f => !sameName(f.a, f.full)) ? ` (약칭 풀이: ${currentAbbr.filter(f => !sameName(f.a, f.full)).map(f => `${f.a} = ${f.full}`).join(', ')})` : '');
   currentResults = results;
   renderResults(q, strong, toks, results);
   // 같은 상황의 판례·법령해석례도 함께 찾는다 (구체적인 단어 → 주제 핵심어 순)
@@ -705,7 +719,7 @@ function renderResults(q, strong, toks, results){
   } else if (toks.length){
     html += `<div class="understood"><b>입력하신 말을 그대로 검색했습니다.</b> 상황을 조금 더 구체적으로 적으면 더 잘 찾습니다. <br><span style="color:var(--sub)">검색어: ${toks.map(esc).join(', ')}</span></div>`;
   }
-  const abbrs = currentAbbr.filter(f => f.a !== f.full);
+  const abbrs = currentAbbr.filter(f => !sameName(f.a, f.full));
   if (abbrs.length){
     html += `<div class="understood"><b>법령 약칭을 정식 법령명으로 바꿔 찾았습니다.</b> ` +
       abbrs.map(f => `<span class="tag">${esc(f.a)} → ${esc(f.full)}${f.sub ? ' ' + esc(f.sub) : ''}</span>`).join('') + `</div>`;
