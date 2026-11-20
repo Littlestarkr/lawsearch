@@ -52,11 +52,16 @@ for (const [q, exp, rest] of A){
   ok(r.rest === rest, `약칭 '${q}' 남는 말: '${r.rest}' (기대 '${rest}')`);
 }
 // 풀면 안 되는 경우: 더 긴 말의 일부, 정식명을 그대로 적은 경우
-const NONE = ['최근기법 소개', '수출 처음 하는데 필요한 신고나 절차', '하도급 대금을 늦게 주면 어떻게 되나요'];
+const NONE = ['최근기법 소개', '국가 계약 선금 지급', '수출 처음 하는데 필요한 신고나 절차', '하도급 대금을 늦게 주면 어떻게 되나요'];
 for (const q of NONE) ok(ctx.expandAbbr(q).found.length === 0, `'${q}'에서 약칭을 찾으면 안 됨: ${JSON.stringify(ctx.expandAbbr(q).found)}`);
 {
+  // 정식명을 그대로 적으면 그 법 하나로 알아보고, 그 안의 '관세법'을 따로 잡지 않는다
   const r = ctx.expandAbbr('자유무역협정의 이행을 위한 관세법의 특례에 관한 법률 제8조');
-  ok(r.found.length === 0, '정식명 속 \'관세법\'을 따로 잡으면 안 됨: ' + JSON.stringify(r.found));
+  ok(r.found.length === 1 && r.found[0].full === '자유무역협정의 이행을 위한 관세법의 특례에 관한 법률' && r.rest === '제8조', '정식명 속 \'관세법\'을 따로 잡으면 안 됨: ' + JSON.stringify(r));
+  const r2 = ctx.expandAbbr('국가를당사자로하는계약에관한법률 시행령 선금');
+  ok(r2.found.length === 1 && r2.found[0].full === '국가를 당사자로 하는 계약에 관한 법률' && r2.found[0].sub === '시행령' && r2.rest === '선금', '붙여 쓴 정식명: ' + JSON.stringify(r2));
+  const r3 = ctx.expandAbbr('대중소기업 상생협력 촉진에 관한 법률');
+  ok(r3.found.length === 1 && r3.found[0].full === '대ㆍ중소기업 상생협력 촉진에 관한 법률', '가운뎃점 없이 적은 정식명: ' + JSON.stringify(r3));
 }
 // 풀어 쓴 질문(full)
 ok(ctx.expandAbbr('화관법 시행령 보고').full === '화학물질관리법 시행령 보고', 'full: ' + ctx.expandAbbr('화관법 시행령 보고').full);
