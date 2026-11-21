@@ -123,11 +123,12 @@ footer .ga-note{margin:6px 0 0}footer .ga-note a{color:inherit}
     <div class="row">
       <div class="grow"><label for="q1">품목명</label><span class="clr"><input id="q1" style="width:100%" placeholder="예) 의료기기, 화장품, 식품, 전기제품"></span></div>
       <div class="grow"><label for="q2">인증제도명</label><span class="clr"><input id="q2" style="width:100%" placeholder="예) CE, KC, FDA, 할랄"></span></div>
-      <div style="min-width:130px"><label for="q5">HS코드(6자리)</label><span class="clr"><input id="q5" style="width:100%" placeholder="예) 902214"></span></div>
+      <div class="grow"><label for="q3">국가·지역</label><span class="clr"><input id="q3" style="width:100%" list="natList" placeholder="예) 베트남, 미국, 유럽, 중동" autocomplete="off"></span><datalist id="natList"></datalist></div>
+      <div style="flex:0 1 150px;min-width:130px"><label for="q5">HS코드(6자리)</label><span class="clr"><input id="q5" style="width:100%" placeholder="예) 902214"></span></div>
       <button class="btn" id="go" type="button">찾기</button>
       <button class="btn ghost" id="reset" type="button">✕ 조건 지우기</button>
     </div>
-    <p class="hint">조건을 하나만 넣어도 됩니다. 결과가 많으면 아래 국가 버튼으로 걸러 보세요. HS코드는 <a href="../trade/" style="color:var(--brand)">무역통계 길잡이</a>에서 찾을 수 있습니다.</p>
+    <p class="hint">조건을 하나만 넣어도 됩니다. 국가·지역은 나라 이름(베트남)이나 지역(유럽·중동·동남아 등)으로 넣고, 품목명이나 인증제도명을 함께 넣으면 더 빨리 찾습니다. HS코드는 <a href="../trade/" style="color:var(--brand)">무역통계 길잡이</a>에서 찾을 수 있습니다.</p>
   </div>
   <div id="out"></div>
 
@@ -163,7 +164,34 @@ const FIELDS = [
   ['affatMntCostCn', '사후관리 비용'], ['crtfcRqrmnPdCn', '인증 소요 기간'], ['testRqrmnPdCn', '시험 소요 기간'], ['crtfcValidPdCn', '인증 유효 기간'],
   ['eryyFctryJdgmtCn', '공장 심사'], ['indcEraCn', '도입 시기'], ['arcvCn', '기록'], ['atnotiCn', '유의사항'], ['crtfcInfoAtnotiCn', '인증 정보 유의사항'], ['etcCn', '기타']
 ];
-let state = {items: [], total: 0, page: 1, q: null, country: ''};
+const blankState = () => ({items: [], total: 0, page: 0, q: null, country: '', nat: '', scanned: 0});
+let state = blankState();
+
+/* 국가·지역: KOTRA API에 국가 검색 변수가 없어, 받은 결과의 국가(nat)·무역관(ovrofInfo)으로 거른다 */
+const REGIONS = {
+  '유럽': ['유럽', 'EU', '독일', '프랑스', '이탈리아', '스페인', '네덜란드', '벨기에', '오스트리아', '폴란드', '체코', '헝가리', '루마니아', '불가리아', '그리스', '포르투갈', '스웨덴', '덴마크', '핀란드', '아일랜드', '슬로바키아', '슬로베니아', '크로아티아', '세르비아', '영국', '스위스', '노르웨이', '튀르키예', '터키', '우크라이나', '룩셈부르크', '에스토니아', '라트비아', '리투아니아'],
+  '중동': ['중동', '사우디', 'UAE', '아랍에미리트', '카타르', '쿠웨이트', '오만', '바레인', '이란', '이라크', '요르단', '이스라엘', '레바논', '이집트', '튀르키예', '터키', 'GCC'],
+  '동남아': ['아세안', 'ASEAN', '베트남', '태국', '인도네시아', '말레이시아', '싱가포르', '필리핀', '미얀마', '캄보디아', '라오스', '브루나이'],
+  '서남아': ['인도', '파키스탄', '방글라데시', '스리랑카', '네팔'],
+  '중국권': ['중국', '홍콩', '대만', '마카오'],
+  '일본': ['일본'],
+  '북미': ['미국', '캐나다'],
+  '중남미': ['멕시코', '브라질', '아르헨티나', '칠레', '페루', '콜롬비아', '에콰도르', '파나마', '과테말라', '도미니카', '쿠바', '베네수엘라', '파라과이', '우루과이', '볼리비아', '코스타리카'],
+  'CIS·중앙아': ['러시아', '카자흐스탄', '우즈베키스탄', '키르기스', '타지키스탄', '투르크메니스탄', '아제르바이잔', '몽골', '벨라루스', '조지아', '아르메니아', '우크라이나'],
+  '아프리카': ['남아공', '남아프리카', '나이지리아', '케냐', '에티오피아', '가나', '탄자니아', '모로코', '알제리', '튀니지', '이집트', '코트디부아르', '세네갈', '앙골라', '모잠비크'],
+  '오세아니아': ['호주', '뉴질랜드']
+};
+const REGION_ALIAS = {'EU': '유럽', '유럽연합': '유럽', '아세안': '동남아', 'ASEAN': '동남아', '동남아시아': '동남아', '남아시아': '서남아', '중화권': '중국권', '미주': '북미', '라틴아메리카': '중남미', '중앙아시아': 'CIS·중앙아', 'CIS': 'CIS·중앙아', '대양주': '오세아니아'};
+$('natList').innerHTML = Object.keys(REGIONS).map(r => `<option value="${esc(r)}">`).join('');
+const normNat = s => String(s || '').replace(/\s+/g, '').toUpperCase();
+function natMatcher(v){
+  const k = normNat(v); if (!k) return null;
+  const rk = Object.keys(REGIONS).find(r => normNat(r) === k) || REGION_ALIAS[Object.keys(REGION_ALIAS).find(a => normNat(a) === k)];
+  const keys = (rk ? REGIONS[rk] : [v]).map(normNat);
+  const hit = (t, w) => t.includes(w) && !(w === '인도' && !t.replace(/인도네시아/g, '').includes(w));   // '인도'가 '인도네시아'에 걸리지 않게
+  return x => { const t = normNat(x.nat) + '|' + normNat(x.ovrofInfo); return keys.some(w => hit(t, w)); };
+}
+const SCAN_ROWS = 100, SCAN_PAGES = 10;   // 국가로 거를 때 한 번에 훑는 양(100건 × 10번 = 1,000건)
 const _ta = document.createElement('textarea');
 const decode = t => { _ta.innerHTML = t; return _ta.value; };   // &middot; 같은 HTML 문자 코드를 글자로 (내용은 그대로)
 const clean = v => decode(String(v ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n')).replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n|\r/g, '\n').trim();
@@ -173,16 +201,40 @@ function render(){
   const items = state.items.filter(x => !state.country || x.nat === state.country);
   const cnt = {}; state.items.forEach(x => { const n = x.nat || '기타'; cnt[n] = (cnt[n] || 0) + 1; });
   const chips = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
-  out.innerHTML = `<div class="hint" style="margin:0 0 6px">검색 결과 ${state.total}건 중 ${state.items.length}건을 불러왔습니다${state.country ? ' · ' + esc(state.country) + ' ' + items.length + '건' : ''}.</div>` +
+  const head = state.nat
+    ? `검색 결과 ${state.total}건 중 ${state.scanned}건을 확인해 ‘${esc(state.nat)}’ ${state.items.length}건을 찾았습니다`
+    : `검색 결과 ${state.total}건 중 ${state.items.length}건을 불러왔습니다`;
+  out.innerHTML = `<div class="hint" style="margin:0 0 6px">${head}${state.country ? ' · ' + esc(state.country) + ' ' + items.length + '건' : ''}.</div>` +
+    (state.nat && !state.items.length ? `<div class="state">지금까지 확인한 ${state.scanned}건에는 ‘${esc(state.nat)}’ 자료가 없습니다.${state.scanned < state.total ? ' 아래 버튼으로 더 찾아보거나, 품목명·인증제도명을 함께 넣어 범위를 좁혀 보세요.' : ' 다른 나라 이름이나 지역(예: 유럽, 동남아)으로 찾아 보세요.'}</div>` : '') +
     (chips.length > 1 ? `<div class="chips"><button class="chip${state.country ? '' : ' on'}" data-c="">전체</button>` + chips.map(([n, c]) => `<button class="chip${state.country === n ? ' on' : ''}" data-c="${esc(n)}">${esc(n)} ${c}</button>`).join('') + `</div>` : '') +
     items.map((x, i) => {
       const f = FIELDS.map(([k, l]) => [l, clean(x[k])]).filter(a => a[1]);
       return `<details class="item"><summary><span class="tag">${esc(x.nat || '')}</span>${x.crtfcGbnVal ? `<span class="tag${x.crtfcGbnVal === '강제' ? ' must' : ' ok'}">${esc(x.crtfcGbnVal)}</span>` : ''}${x.crtfcTyVal ? `<span class="tag">${esc(x.crtfcTyVal)}</span>` : ''}<h4>${esc(clean(x.systeNm) || clean(x.nttSj))}</h4><div class="meta">${esc(clean(x.nttSj))}${x.hscd ? ' · HS ' + esc(x.hscd) : ''}${x.ovrofInfo ? ' · ' + esc(x.ovrofInfo) : ''}${x.othbcDt ? ' · 공개 ' + esc(x.othbcDt) : ''}</div></summary><div class="body">` +
         (f.length ? f.map(([l, v]) => `<div class="f"><b>${esc(l)}</b><div>${esc(v)}</div></div>`).join('') : '<div class="hint">상세 내용이 없습니다.</div>') + `<div class="hint" style="margin-top:12px">출처: KOTRA ${esc(x.ovrofInfo || '')} · 등록 ${esc(x.regDt || '')}</div></div></details>`;
     }).join('') +
-    (state.items.length < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 불러오기 (${state.total - state.items.length}건 남음)</button></div>` : '');
+    (state.nat
+      ? (state.scanned < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 찾아보기 (확인 안 한 ${state.total - state.scanned}건)</button></div>` : '')
+      : (state.items.length < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 불러오기 (${state.total - state.items.length}건 남음)</button></div>` : ''));
   out.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { state.country = b.dataset.c; render(); }));
-  $('more')?.addEventListener('click', () => load(state.page + 1));
+  $('more')?.addEventListener('click', () => state.nat ? scan(state.page + 1) : load(state.page + 1));
+}
+/* 국가·지역을 넣었을 때: 여러 쪽을 차례로 받아 국가로 거른다 */
+async function scan(start){
+  const out = $('out'), q = state.q, match = natMatcher(state.nat);
+  const prog = m => { if (start === 1) out.innerHTML = `<div class="state">${m}</div>`; else { const b = $('more'); if (b){ b.disabled = true; b.textContent = m; } } };
+  prog('해외인증 정보를 불러오는 중…');
+  try {
+    for (let p = start; p < start + SCAN_PAGES; p++){
+      const j = await viaProxy('cert', {...q, pageNo: p, numOfRows: SCAN_ROWS});
+      const got = j.items || [];
+      state.total = j.total || 0; state.page = p; state.scanned += got.length;
+      state.items = state.items.concat(got.filter(match));
+      if (!got.length || state.scanned >= state.total) break;
+      prog(`‘${esc(state.nat)}’ 찾는 중… ${state.scanned} / ${state.total}건 확인, ${state.items.length}건 찾음`);
+    }
+    if (!state.total){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>`; return; }
+    render();
+  } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + e.message); }
 }
 async function load(page){
   const out = $('out'); const q = state.q;
@@ -200,20 +252,20 @@ async function load(page){
 function run(){
   const q = {search1: $('q1').value.trim(), search2: $('q2').value.trim(), search5: $('q5').value.replace(/\D/g, '').slice(0, 6)};
   Object.keys(q).forEach(k => { if (!q[k]) delete q[k]; });
-  state = {items: [], total: 0, page: 1, q, country: ''};
-  load(1);
+  state = {...blankState(), q, nat: $('q3').value.trim()};
+  if (state.nat) scan(1); else load(1);
 }
 $('go').addEventListener('click', run);
-['q1', 'q2', 'q5'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
+['q1', 'q2', 'q5', 'q3'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
 
 /* 입력칸 ✕ */
-['q1', 'q2', 'q5'].forEach(id => {
+['q1', 'q2', 'q5', 'q3'].forEach(id => {
   const inp = $(id), w = inp.parentNode; w.style.display = 'block';
   const b = document.createElement('button'); b.type = 'button'; b.className = 'x'; b.setAttribute('aria-label', '지우기'); b.textContent = '×'; w.appendChild(b);
   const sync = () => w.classList.toggle('has', !!inp.value); inp.addEventListener('input', sync); inp._sync = sync;
   b.addEventListener('click', () => { inp.value = ''; sync(); inp.focus(); });
 });
-$('reset').addEventListener('click', () => { ['q1', 'q2', 'q5'].forEach(id => { $(id).value = ''; $(id)._sync(); }); $('out').innerHTML = ''; state = {items: [], total: 0, page: 1, q: null, country: ''}; $('q1').focus(); });
+$('reset').addEventListener('click', () => { ['q1', 'q2', 'q5', 'q3'].forEach(id => { $(id).value = ''; $(id)._sync(); }); $('out').innerHTML = ''; state = blankState(); $('q1').focus(); });
 
 /* 이전 화면 / 맨 위로 / 홈페이지 */
 (function(){
@@ -230,14 +282,15 @@ $('reset').addEventListener('click', () => { ['q1', 'q2', 'q5'].forEach(id => { 
   bar.querySelector('.fn-top').addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
 })();
 
-/* 주소로 바로 열기: ?q=의료기기 &hs=902214 &c=제도명 */
+/* 주소로 바로 열기: ?q=의료기기 &hs=902214 &c=제도명 &nat=베트남 */
 (function(){
   const p = new URLSearchParams(location.search);
   if (p.get('q')) $('q1').value = p.get('q');
   if (p.get('c')) $('q2').value = p.get('c');
   if (p.get('hs')) $('q5').value = p.get('hs').replace(/\D/g, '').slice(0, 6);
-  ['q1', 'q2', 'q5'].forEach(id => $(id)._sync());
-  if (p.get('q') || p.get('c') || p.get('hs')) run();
+  if (p.get('nat')) $('q3').value = p.get('nat').slice(0, 30);
+  ['q1', 'q2', 'q5', 'q3'].forEach(id => $(id)._sync());
+  if (p.get('q') || p.get('c') || p.get('hs') || p.get('nat')) run();
 })();
 </script>
 </body>
