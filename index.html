@@ -6,7 +6,7 @@
 if (location.hostname === 'littlestarkr.github.io') location.replace('https://www.littlestar.co.kr' + location.pathname + location.search + location.hash);</script>
 <link rel="canonical" href="https://www.littlestar.co.kr/lawsearch/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HappyOh 법령 길잡이</title>
+<title>Happy Oh 법령 길잡이</title>
 <style>
 :root{
   --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
@@ -107,7 +107,7 @@ footer .ga-note{margin:6px 0 0}footer .ga-note a{color:inherit}
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>HappyOh 법령 길잡이</h1>
+      <h1>Happy Oh 법령 길잡이</h1>
       <p>정확한 법령명을 몰라도 됩니다. 궁금한 상황을 편하게 적어 보세요.</p>
     </div>
     <button class="gear" id="gear" type="button">⚙ 설정</button>
@@ -1070,7 +1070,7 @@ async function makeAiPrompt(){
     const link = decodeURI(artLink(a, law) || lawUrl(law.name, law.kind));   // 붙여 넣었을 때 읽기 쉽게 한글 주소로
     return `${i + 1}) ${law.name}${a.supp ? ' [부칙]' : ''}${l.시행일자 ? ` (시행 ${fmtDate(l.시행일자)})` : ''}\n${t}\n원문: ${link}`;
   }).join('\n\n');
-  const text = `${AI_RULES}\n\n[질문]\n${currentQuery}\n\n[참고 조문]\n(국가법령정보센터 Open API에서 ${today}에 가져온 현행 조문입니다. HappyOh 법령 길잡이가 검색어 일치로 고른 것이라 관련 조문이 빠졌을 수 있습니다.)\n\n${body}\n`;
+  const text = `${AI_RULES}\n\n[질문]\n${currentQuery}\n\n[참고 조문]\n(국가법령정보센터 Open API에서 ${today}에 가져온 현행 조문입니다. Happy Oh 법령 길잡이가 검색어 일치로 고른 것이라 관련 조문이 빠졌을 수 있습니다.)\n\n${body}\n`;
   box.innerHTML = `<textarea class="ai-text" id="aiText" readonly aria-label="AI 질문용 글"></textarea>
     <div class="ai-row">
       <button class="btn pri" id="aiCopy" type="button">복사하기</button>
@@ -1187,7 +1187,7 @@ if (initQ){ $('q').value = initQ; runSearch(initQ); }
   const bar = document.createElement('div'); bar.className = 'floatnav';
   bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
   document.body.appendChild(bar);
-  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'HappyOh Consulting'; document.body.appendChild(home);
+  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'Happy Oh Consulting'; document.body.appendChild(home);
   bar.querySelector('.fn-back').addEventListener('click', () => {
     let same = false;
     try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}

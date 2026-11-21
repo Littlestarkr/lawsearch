@@ -6,7 +6,7 @@
 if (location.hostname === 'littlestarkr.github.io') location.replace('https://www.littlestar.co.kr' + location.pathname + location.search + location.hash);</script>
 <link rel="canonical" href="https://www.littlestar.co.kr/lawsearch/trade/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HappyOh 무역통계 길잡이</title>
+<title>Happy Oh 무역통계 길잡이</title>
 <style>
 :root{
   --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
@@ -102,7 +102,7 @@ footer .ga-note{margin:6px 0 0}footer .ga-note a{color:inherit}
 <div class="wrap">
   <div class="top">
     <div>
-      <h1>HappyOh 무역통계 길잡이</h1>
+      <h1>Happy Oh 무역통계 길잡이</h1>
       <p class="sub">HS코드를 찾고, 품목별 수출 상대국 순위와 세계 수입시장을 한 화면에서 비교합니다.</p>
     </div>
     <button class="gear" id="gear" type="button">⚙ 설정</button>
@@ -215,7 +215,7 @@ footer .ga-note{margin:6px 0 0}footer .ga-note a{color:inherit}
       <a href="https://unipass.customs.go.kr/clip/index.do" target="_blank" rel="noopener"><b>관세법령정보포털(UNI-PASS) ↗</b><span>HS 검색·관세율·FTA 협정세율·품목분류 사례</span></a>
       <a href="https://unipass.customs.go.kr/ets/index.do" target="_blank" rel="noopener"><b>무역통계(관세청) ↗</b><span>관세청 수출입무역통계 원자료</span></a>
       <a href="https://comtradeplus.un.org/" target="_blank" rel="noopener"><b>UN Comtrade ↗</b><span>세계 각국의 상품 무역 통계(HS 6단위)</span></a>
-      <a href="../" ><b>HappyOh 법령 길잡이 →</b><span>대외무역법·관세법 등 법령 검색</span></a>
+      <a href="../" ><b>Happy Oh 법령 길잡이 →</b><span>대외무역법·관세법 등 법령 검색</span></a>
     </div>
     <div class="card" style="margin-top:14px"><h3>관세 환율 (UNI-PASS)</h3>
       <div class="row">
@@ -942,7 +942,7 @@ $('ctGo').addEventListener('click', async () => {
   const bar = document.createElement('div'); bar.className = 'floatnav';
   bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
   document.body.appendChild(bar);
-  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'HappyOh Consulting'; document.body.appendChild(home);
+  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'Happy Oh Consulting'; document.body.appendChild(home);
   bar.querySelector('.fn-back').addEventListener('click', () => {
     let same = false;
     try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
