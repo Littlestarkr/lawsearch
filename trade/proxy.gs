@@ -1,5 +1,5 @@
 /**
- * HappyOh 무역통계 길잡이 — 중계 서버 (Google Apps Script)
+ * Happy Oh 무역통계 길잡이 — 중계 서버 (Google Apps Script)
  *
  * 하는 일
  *  - 관세청 '품목별 국가별 수출입실적'(공공데이터포털) 호출: 인증키를 서버에 숨기고, 여러 나라를 한 번에 조회

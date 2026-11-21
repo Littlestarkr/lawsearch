@@ -6,7 +6,7 @@
 if (location.hostname === 'littlestarkr.github.io') location.replace('https://www.littlestar.co.kr' + location.pathname + location.search + location.hash);</script>
 <link rel="canonical" href="https://www.littlestar.co.kr/lawsearch/buyer/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HappyOh 바이어 검색 길잡이</title>
+<title>Happy Oh 바이어 검색 길잡이</title>
 <style>
 :root{
   --bg:#f4f6f9; --card:#ffffff; --ink:#1b2430; --sub:#5b6776; --line:#dfe4ea;
@@ -113,7 +113,7 @@ td .nm{font-weight:600}
 </head>
 <body>
 <div class="wrap">
-  <h1 style="margin:0;font-size:26px;letter-spacing:-.02em">HappyOh 바이어 검색 길잡이</h1>
+  <h1 style="margin:0;font-size:26px;letter-spacing:-.02em">Happy Oh 바이어 검색 길잡이</h1>
   <p style="margin:6px 0 14px;color:var(--sub);font-size:15px">수출하려는 나라와 업종을 고르면, 한국무역보험공사(무보)가 보유한 해외 바이어 정보를 찾아 줍니다.</p>
   <div class="okbox" style="background:var(--warn);color:var(--ink);border:1px solid var(--warn-line)">참고용 정보입니다. 거래 전에는 반드시 바이어의 신용을 별도로 확인하세요. (무보 <a href="https://www.ksure.or.kr/" target="_blank" rel="noopener" style="color:var(--brand)">국외기업 신용조사</a>, <a href="https://ksight.ksure.or.kr/" target="_blank" rel="noopener" style="color:var(--brand)">K-SIGHT</a>)</div>
 
@@ -264,7 +264,7 @@ $('reset').addEventListener('click', () => {
   const bar = document.createElement('div'); bar.className = 'floatnav';
   bar.innerHTML = '<button type="button" class="fn-back">← 이전 화면</button><button type="button" class="fn-top" aria-label="맨 위로">↑</button>';
   document.body.appendChild(bar);
-  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'HappyOh Consulting'; document.body.appendChild(home);
+  const home = document.createElement('a'); home.className = 'floathome'; home.href = 'https://www.littlestar.co.kr/'; home.textContent = 'Happy Oh Consulting'; document.body.appendChild(home);
   bar.querySelector('.fn-back').addEventListener('click', () => {
     let same = false;
     try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
