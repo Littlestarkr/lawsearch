@@ -164,7 +164,7 @@ const FIELDS = [
   ['affatMntCostCn', '사후관리 비용'], ['crtfcRqrmnPdCn', '인증 소요 기간'], ['testRqrmnPdCn', '시험 소요 기간'], ['crtfcValidPdCn', '인증 유효 기간'],
   ['eryyFctryJdgmtCn', '공장 심사'], ['indcEraCn', '도입 시기'], ['arcvCn', '기록'], ['atnotiCn', '유의사항'], ['crtfcInfoAtnotiCn', '인증 정보 유의사항'], ['etcCn', '기타']
 ];
-const blankState = () => ({items: [], total: 0, page: 0, q: null, country: '', nat: '', scanned: 0});
+const blankState = () => ({items: [], total: 0, page: 0, q: null, country: '', nat: '', scanned: 0, rows: 0, scanErr: ''});
 let state = blankState();
 
 /* 국가·지역: KOTRA API에 국가 검색 변수가 없어, 받은 결과의 국가(nat)·무역관(ovrofInfo)으로 거른다 */
@@ -191,7 +191,20 @@ function natMatcher(v){
   const hit = (t, w) => t.includes(w) && !(w === '인도' && !t.replace(/인도네시아/g, '').includes(w));   // '인도'가 '인도네시아'에 걸리지 않게
   return x => { const t = normNat(x.nat) + '|' + normNat(x.ovrofInfo); return keys.some(w => hit(t, w)); };
 }
-const SCAN_ROWS = 100, SCAN_PAGES = 10;   // 국가로 거를 때 한 번에 훑는 양(100건 × 10번 = 1,000건)
+const SCAN_ROWS = [50, 25], SCAN_PAGES = 12;   // 국가로 거를 때: 50건씩(오류가 나면 25건씩) 한 번에 최대 12번
+/* 공공데이터포털이 KOTRA 서버 오류를 'HTTP 에러 (코드 04)'처럼 돌려줄 때 알아듣기 쉬운 말로 */
+function friendlyErr(m){
+  m = String(m || '');
+  if (/코드\s*(04|99)|HTTP[ _]?(에러|ERROR)|HTTP 5\d\d|시간이 초과|Failed to fetch|NetworkError|Load failed/i.test(m))
+    return 'KOTRA 해외인증 자료 서버가 잠시 응답하지 않았습니다. 잠시 후 다시 시도하거나, 품목명·인증제도명을 함께 넣어 범위를 좁혀 보세요.\n(상세: ' + m + ')';
+  if (/코드\s*22|LIMITED/i.test(m)) return '오늘 조회 한도를 다 썼습니다. 내일 다시 시도해 주세요.\n(상세: ' + m + ')';
+  return m;
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function certPage(q, page, rows){   // 한 번 실패하면 잠시 쉬었다 다시 시도
+  try { return await viaProxy('cert', {...q, pageNo: page, numOfRows: rows}); }
+  catch (e) { await wait(1500); return await viaProxy('cert', {...q, pageNo: page, numOfRows: rows}); }
+}
 const _ta = document.createElement('textarea');
 const decode = t => { _ta.innerHTML = t; return _ta.value; };   // &middot; 같은 HTML 문자 코드를 글자로 (내용은 그대로)
 const clean = v => decode(String(v ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n')).replace(/\\r\\n|\\n|\\r/g, '\n').replace(/\r\n|\r/g, '\n').trim();
@@ -205,6 +218,7 @@ function render(){
     ? `검색 결과 ${state.total}건 중 ${state.scanned}건을 확인해 ‘${esc(state.nat)}’ ${state.items.length}건을 찾았습니다`
     : `검색 결과 ${state.total}건 중 ${state.items.length}건을 불러왔습니다`;
   out.innerHTML = `<div class="hint" style="margin:0 0 6px">${head}${state.country ? ' · ' + esc(state.country) + ' ' + items.length + '건' : ''}.</div>` +
+    (state.scanErr ? errBox('중간에 조회가 멈췄습니다. 지금까지 찾은 결과만 보여 드립니다. ' + state.scanErr) : '') +
     (state.nat && !state.items.length ? `<div class="state">지금까지 확인한 ${state.scanned}건에는 ‘${esc(state.nat)}’ 자료가 없습니다.${state.scanned < state.total ? ' 아래 버튼으로 더 찾아보거나, 품목명·인증제도명을 함께 넣어 범위를 좁혀 보세요.' : ' 다른 나라 이름이나 지역(예: 유럽, 동남아)으로 찾아 보세요.'}</div>` : '') +
     (chips.length > 1 ? `<div class="chips"><button class="chip${state.country ? '' : ' on'}" data-c="">전체</button>` + chips.map(([n, c]) => `<button class="chip${state.country === n ? ' on' : ''}" data-c="${esc(n)}">${esc(n)} ${c}</button>`).join('') + `</div>` : '') +
     items.map((x, i) => {
@@ -216,44 +230,50 @@ function render(){
       ? (state.scanned < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 찾아보기 (확인 안 한 ${state.total - state.scanned}건)</button></div>` : '')
       : (state.items.length < state.total ? `<div class="row" style="margin:10px 0"><button class="btn ghost" id="more" type="button">더 불러오기 (${state.total - state.items.length}건 남음)</button></div>` : ''));
   out.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { state.country = b.dataset.c; render(); }));
-  $('more')?.addEventListener('click', () => state.nat ? scan(state.page + 1) : load(state.page + 1));
+  $('more')?.addEventListener('click', () => state.nat ? scan(true) : load(state.page + 1));
 }
 /* 국가·지역을 넣었을 때: 여러 쪽을 차례로 받아 국가로 거른다 */
-async function scan(start){
+async function scan(more){
   const out = $('out'), q = state.q, match = natMatcher(state.nat);
-  const prog = m => { if (start === 1) out.innerHTML = `<div class="state">${m}</div>`; else { const b = $('more'); if (b){ b.disabled = true; b.textContent = m; } } };
+  const prog = m => { if (!more) out.innerHTML = `<div class="state">${m}</div>`; else { const b = $('more'); if (b){ b.disabled = true; b.textContent = m; } } };
   prog('해외인증 정보를 불러오는 중…');
-  try {
-    for (let p = start; p < start + SCAN_PAGES; p++){
-      const j = await viaProxy('cert', {...q, pageNo: p, numOfRows: SCAN_ROWS});
-      const got = j.items || [];
-      state.total = j.total || 0; state.page = p; state.scanned += got.length;
-      state.items = state.items.concat(got.filter(match));
-      if (!got.length || state.scanned >= state.total) break;
-      prog(`‘${esc(state.nat)}’ 찾는 중… ${state.scanned} / ${state.total}건 확인, ${state.items.length}건 찾음`);
+  if (!state.rows) state.rows = SCAN_ROWS[0];
+  for (let n = 0; n < SCAN_PAGES; n++){
+    let j;
+    try { j = await certPage(q, state.scanned / state.rows + 1, state.rows); }
+    catch (e) {
+      const next = SCAN_ROWS[SCAN_ROWS.indexOf(state.rows) + 1];
+      if (next && state.scanned % next === 0){ state.rows = next; n--; continue; }   // 한 번에 받는 양을 줄여 다시
+      if (state.scanned){ state.scanErr = friendlyErr(e.message); break; }   // 찾은 것까지는 보여 준다
+      out.innerHTML = errBox('해외인증 조회 오류: ' + friendlyErr(e.message)); return;
     }
-    if (!state.total){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>`; return; }
-    render();
-  } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + e.message); }
+    const got = j.items || [];
+    state.total = j.total || 0; state.scanned += got.length; state.scanErr = '';
+    state.items = state.items.concat(got.filter(match));
+    if (got.length < state.rows || state.scanned >= state.total) break;
+    prog(`‘${esc(state.nat)}’ 찾는 중… ${state.scanned} / ${state.total}건 확인, ${state.items.length}건 찾음`);
+  }
+  if (!state.total){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>`; return; }
+  render();
 }
 async function load(page){
   const out = $('out'); const q = state.q;
   if (page === 1) out.innerHTML = '<div class="state">해외인증 정보를 불러오는 중…</div>';
   const btn = $('more'); if (btn){ btn.disabled = true; btn.textContent = '불러오는 중…'; }
   try {
-    const j = await viaProxy('cert', {...q, pageNo: page, numOfRows: 50});
+    const j = await certPage(q, page, 50);
     state.rawHead = j.rawHead || '';
     state.total = j.total || 0; state.page = page;
     state.items = page === 1 ? (j.items || []) : state.items.concat(j.items || []);
     if (!state.items.length){ out.innerHTML = `<div class="state">조건에 맞는 인증 정보가 없습니다. 검색어를 줄이거나 다른 말(예: 의료기기 → 의료)로 찾아 보세요.</div>` + (state.rawHead ? `<details class="guide"><summary>서버 응답 원문 보기</summary><pre style="white-space:pre-wrap;font-size:12px;overflow-wrap:anywhere">${esc(state.rawHead)}</pre></details>` : ''); return; }
     render();
-  } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + e.message); }
+  } catch (e) { out.innerHTML = errBox('해외인증 조회 오류: ' + friendlyErr(e.message)); }
 }
 function run(){
   const q = {search1: $('q1').value.trim(), search2: $('q2').value.trim(), search5: $('q5').value.replace(/\D/g, '').slice(0, 6)};
   Object.keys(q).forEach(k => { if (!q[k]) delete q[k]; });
   state = {...blankState(), q, nat: $('q3').value.trim()};
-  if (state.nat) scan(1); else load(1);
+  if (state.nat) scan(false); else load(1);
 }
 $('go').addEventListener('click', run);
 ['q1', 'q2', 'q5', 'q3'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
