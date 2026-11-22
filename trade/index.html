@@ -522,7 +522,7 @@ $('hsq').addEventListener('keydown', e => { if (e.key === 'Enter') runHs(); });
 $('hsOut').addEventListener('click', e => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   if (b.dataset.a === 'detail') showDetail(b.dataset.c);
-  else if (b.dataset.a === 'cert') location.href = '../cert/?hs=' + b.dataset.c.slice(0, 6);
+  else if (b.dataset.a === 'cert') location.href = 'https://www.littlestar.co.kr/cert-guide.html';
   else goAnalyze(b.dataset.c.slice(0, 6), b.dataset.a);
 });
 // 6자리 아래의 10자리 세번을 관세청 실적에서 찾는다 (주요 수출국 14곳, ②탭의 기간 사용)
@@ -607,7 +607,7 @@ $('hsUni').addEventListener('click', e => {
     $('hsUni').innerHTML = `<div class="row" style="margin:0 0 8px"><button class="btn ghost" data-back="1" type="button">← 6자리 목록으로</button></div>` +
       krTable(codes, `${fmtHs(g)} 아래 10자리 세번`, `${esc(shortTxt(krMap.get(g) || '', 60))} 분류의 세번입니다.`);
     $('hsUni').scrollIntoView({behavior: 'smooth', block: 'start'});
-  } else if (b.dataset.g === 'cert') location.href = '../cert/?hs=' + g;
+  } else if (b.dataset.g === 'cert') location.href = 'https://www.littlestar.co.kr/cert-guide.html';
   else goAnalyze(g, b.dataset.g);
 });
 async function runLocal(q, digits, isCode){
@@ -661,7 +661,7 @@ async function runUni(q, digits, isCode){
 $('hsUni').addEventListener('click', e => {
   const b = e.target.closest('button[data-u]'); if (!b) return;
   if (b.dataset.u === 'tariff') showTariff(b.dataset.c);
-  else if (b.dataset.u === 'cert') location.href = '../cert/?hs=' + b.dataset.c.slice(0, 6);
+  else if (b.dataset.u === 'cert') location.href = 'https://www.littlestar.co.kr/cert-guide.html';
   else { setHs(b.dataset.c); $('rkUnit').value = '10'; showTab('rank'); prepRank(); }
 });
 async function showTariff(hs){

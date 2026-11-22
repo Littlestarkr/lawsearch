@@ -27,8 +27,8 @@
 - `trade/proxy.gs` : Google Apps Script 중계 서버(관세청 인증키 숨김·CORS 우회). 배포 방법은 파일 상단 주석 참고. 배포 후 `index.html`의 `DEFAULT_PROXY`에 웹 앱 URL을 넣는다.
 - 한국무역협회(K-stat)는 공개 API가 없어 링크로만 연결한다.
 
-## cert/ — Happy Oh 해외인증 길잡이
-KOTRA 해외인증정보(공공데이터포털 `B410001/overseasAuthInfo/getOverseasAuthInfo`)를 품목명·인증제도명·HS코드(6자리)로 찾는다. 중계 서버 `proxy.gs`의 `a=cert`를 거치며 인증키는 `DATA_GO_KEY`를 함께 쓴다. 국가 검색 변수는 없어서, 국가·지역 칸(나라 이름 또는 유럽·중동·동남아 같은 지역; `?nat=`)을 채우면 100건씩 최대 10번(1,000건) 받아 국가(`nat`)·무역관(`ovrofInfo`)으로 거르고 '더 찾아보기'로 이어서 훑는다. 지역별 나라 목록은 `cert/index.html`의 `REGIONS`. 받은 결과는 국가 버튼으로도 거른다. 이용허락범위가 공공누리 제4유형(출처표시·상업적 이용금지·변경금지)이므로 원문을 고치지 않고 출처를 표시한다. 무역통계 길잡이 ①탭의 [해외인증] 버튼이 `?hs=`로 연결한다.
+## cert/ — 옛 해외인증 길잡이 주소(이동 안내)
+2026-11-22 KOTRA API 검색형 '해외인증 길잡이'를 홈페이지(export3)의 정적 페이지 `cert-guide.html`(해외인증 조회 가이드)로 대체했다. `cert/index.html`은 새 주소로 바로 넘기는 안내 페이지(`noindex`, canonical = 새 주소)만 남는다. 무역통계 길잡이의 [해외인증] 버튼도 새 페이지로 연결한다. 중계 서버 `proxy.gs`의 `a=cert` 등 KOTRA 해외인증정보 API 연결 코드는 이동이 문제없으면 2026-12 하순에 지운다(작가님 결정).
 
 ## buyer/ — Happy Oh 바이어 검색 길잡이
 한국무역보험공사 「바이어 검색」(공공데이터포털, `apis.data.go.kr/B552696/buyer/getBuyerList`)을 국가(필수)·업종(1~4단계)·품목명·바이어명으로 조회합니다. 국가·업종 코드는 `codes.json`(무보 코드집 xlsx에서 변환). `trade/proxy.gs`의 `buyer` 동작(`DATA_GO_KEY` 사용)을 거칩니다. 요청 변수: `ctryCd`, `industryCd`, `prodNm`, `buyerNm`, `pageNo`, `numOfRows`. 응답 필드 이름은 패턴으로 찾으며, 화면의 '응답 항목 전체 보기'로 원문을 확인할 수 있습니다.
